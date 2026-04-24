@@ -860,4 +860,67 @@
         }
         errorDiv.style.display = 'none';
         
-        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil
+        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil, trinkgeld, art });
+        
+        document.getElementById('von').value = '';
+        document.getElementById('nach').value = '';
+        document.getElementById('fahrgast').value = '';
+        document.getElementById('kostentraeger').value = '';
+        document.getElementById('preis').value = '';
+        document.getElementById('eigenanteil').value = '';
+        document.getElementById('trinkgeld').value = '';
+        document.getElementById('fahrtart').value = 'bar';
+        kostentraegerField.readOnly = false;
+        kostentraegerField.style.background = 'white';
+        kostentraegerHint.innerHTML = '';
+        
+        saveAndUpdate();
+        document.getElementById('summary').style.display = 'none';
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 50);
+    }
+
+    function showSummary() {
+        if (fahrten.length === 0) { alert('Keine Fahrten zum Auswerten.'); return; }
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail senden</button>
+            <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
+        summaryDiv.style.display = 'block';
+        document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());
+        document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+    
+    function resetAll() {
+        if (confirm('Alle Fahrten wirklich löschen?')) {
+            fahrten = [];
+            saveAndUpdate();
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('formError').style.display = 'none';
+        }
+    }
+
+    document.getElementById('addBtn').addEventListener('click', addFahrt);
+    document.getElementById('summaryBtn').addEventListener('click', showSummary);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
+    document.getElementById('emailSettingsBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').style.display = 'flex';
+        document.getElementById('emailRecipient').value = emailRecipient;
+    });
+    document.getElementById('saveEmailBtn').addEventListener('click', () => {
+        emailRecipient = document.getElementById('emailRecipient').value.trim();
+        localStorage.setItem('fahrtenbuch_email', emailRecipient);
+        document.getElementById('emailModal').style.display = 'none';
+    });
+    document.getElementById('closeEmailBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').style.display = 'none';
+    });
+    
+    init();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Digitales Fahrtenbuch - Pro</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .fixed-header {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 12px 16px;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+        
+        .form-group h3 {
+            margin: 0 0 12px 0;
+            font-size: 1.2rem;
+        }
+        
+        .input-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .input-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            position: relative;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            min-width: calc(50% - 8px);
+            position: relative;
+        }
+        
+        .input-wrapper textarea {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            font-family: inherit;
+            resize: none;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.4;
+            min-height: 80px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+        
+        .input-row input[type="text"],
+        .input-row input[type="number"] {
+            flex: 1;
+            min-width: calc(50% - 8px);
+            padding: 12px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            height: 48px;
+        }
+        
+        .input-row select,
+        .input-row input#trinkgeld {
+            flex: 1;
+            min-width: calc(50% - 8px);
+            padding: 10px 12px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            height: 44px;
+        }
+        
+        .autocomplete-list {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-top: none;
+            border-radius: 0 0 8px 8px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .autocomplete-item {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            white-space: normal;
+            word-wrap: break-word;
+            line-height: 1.3;
+        }
+        
+        .autocomplete-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .autocomplete-item strong {
+            display: block;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        
+        .autocomplete-item small {
+            display: block;
+            color: #666;
+            font-size: 11px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        
+        button {
+            padding: 12px 16px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        
+        .add-btn {
+            background: #2c3e50;
+            color: white;
+            width: 100%;
+            margin-top: 8px;
+        }
+        
+        .add-btn:active {
+            background: #1a252f;
+        }
+        
+        .error-msg {
+            color: #d32f2f;
+            font-size: 14px;
+            margin-top: 8px;
+            padding: 6px;
+            background: #ffebee;
+            border-radius: 6px;
+            text-align: center;
+        }
+        
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 4px;
+        }
+        
+        .status-bar {
+            background: #e8f0fe;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            margin-top: 8px;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e0e0e0;
+            border-radius: 2px;
+            margin-top: 8px;
+            overflow: hidden;
+            display: none;
+        }
+        
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: #27ae60;
+            transition: width 0.3s;
+        }
+        
+        .scroll-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+            min-height: 0;
+        }
+        
+        .fahrten-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .fahrt {
+            background: white;
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 6px solid;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .fahrt.bar { border-left-color: #4caf50; }
+        .fahrt.karte { border-left-color: #9c27b0; }
+        .fahrt.rechnung { border-left-color: #2196f3; }
+        .fahrt.kranken { border-left-color: #f44336; }
+        
+        .fahrt-header {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 6px;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .fahrt-details {
+            font-size: 14px;
+            color: #555;
+            margin-bottom: 8px;
+            word-wrap: break-word;
+            white-space: normal;
+        }
+        
+        .delete-btn {
+            background: #e67e22;
+            color: white;
+            padding: 6px 12px;
+            font-size: 14px;
+            border-radius: 6px;
+            margin-top: 6px;
+        }
+        
+        .delete-btn:active {
+            background: #d35400;
+        }
+        
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+        
+        .summary-panel {
+            background: #e9e9e9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .summary-panel h3 {
+            margin-top: 0;
+        }
+        
+        .action-bar {
+            display: flex;
+            gap: 10px;
+            padding: 12px 16px;
+            background: white;
+            border-top: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+        
+        .summary-btn {
+            background: #27ae60;
+            color: white;
+            flex: 1;
+        }
+        
+        .reset-btn {
+            background: #c0392b;
+            color: white;
+            flex: 1;
+        }
+        
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            flex: 0.5;
+        }
+    </style>
+</head>
+<body>
+
+<div class="fixed-header">
+    <div class="form-group">
+        <h3>📝 Neue Fahrt</h3>
+        <div class="input-grid">
+            <div class="input-row">
+                <div class="input-wrapper">
+                    <textarea id="von" placeholder="Von * (Straße, PLZ Ort)" rows="2"></textarea>
+                    <div id="von-autocomplete" class="autocomplete-list" style="display:none;"></div>
+                </div>
+                <div class="input-wrapper">
+                    <textarea id="nach" placeholder="Nach * (Straße, PLZ Ort)" rows="2"></textarea>
+                    <div id="nach-autocomplete" class="autocomplete-list" style="display:none;"></div>
+                </div>
+            </div>
+            <div class="input-row">
+                <input type="text" id="fahrgast" placeholder="Fahrgast (optional)">
+                <input type="text" id="kostentraeger" placeholder="Kostenträger (optional)">
+            </div>
+            <div class="input-row">
+                <input type="number" id="preis" placeholder="Preis (€) *" step="0.01">
+                <input type="number" id="eigenanteil" placeholder="Eigenanteil (€)" step="0.01">
+            </div>
+            <div class="input-row">
+                <input type="number" id="trinkgeld" placeholder="Trinkgeld (€)" step="0.01">
+                <select id="fahrtart">
+                    <option value="bar">🚕 Bar (Standard)</option>
+                    <option value="karte">💳 Kartenzahlung</option>
+                    <option value="rechnung">🧾 Rechnungsfahrt</option>
+                    <option value="kranken">🏥 Krankenfahrt</option>
+                </select>
+            </div>
+            <button class="add-btn" id="addBtn">➕ Fahrt speichern</button>
+            <div id="formError" class="error-msg" style="display:none;"></div>
+            <div class="info-text" id="kostentraegerHint"></div>
+            <div id="statusBar" class="status-bar">📡 Lade Adressliste...</div>
+            <div id="progressBar" class="progress-bar"><div class="progress-fill"></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="scroll-area" id="scrollArea">
+    <div id="fahrtenListe" class="fahrten-container">
+        <div class="empty-state">🚗 Noch keine Fahrten erfasst</div>
+    </div>
+    <div id="summary" class="summary-panel" style="display:none;"></div>
+</div>
+
+<div class="action-bar">
+    <button class="refresh-btn" id="refreshBtn">🔄 Update Adressen</button>
+    <button class="summary-btn" id="summaryBtn">📊 Schicht beenden</button>
+    <button class="reset-btn" id="resetBtn">🗑 Alle löschen</button>
+</div>
+
+<script>
+    let fahrten = [];
+    let adressListe = [];
+    let db = null;
+    let searchTimeout = null;
+    
+    // ========== HIER DEINE GITHUB-URL EINTRAGEN ==========
+    const ADRESSEN_URL = 'https://raw.githubusercontent.com/xrisxan/AdressenListe/refs/heads/main/adressen.txt';
+    // =====================================================
+    
+    const DB_NAME = 'FahrtenbuchDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'adressen';
+    
+    // IndexedDB initialisieren
+    function initDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+            
+            request.onerror = () => reject(request.error);
+            request.onsuccess = () => {
+                db = request.result;
+                resolve();
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                    store.createIndex('strasse', 'strasse', { unique: false });
+                    store.createIndex('plz', 'plz', { unique: false });
+                    store.createIndex('ort', 'ort', { unique: false });
+                    store.createIndex('suchbegriff', 'suchbegriff', { unique: false });
+                }
+            };
+        });
+    }
+    
+    // Adressen in IndexedDB speichern
+    async function saveToIndexedDB(adressen) {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            
+            store.clear();
+            
+            let count = 0;
+            const total = adressen.length;
+            
+            adressen.forEach((adr, index) => {
+                const suchbegriff = `${adr.strasse} ${adr.plz} ${adr.ort} ${adr.ortsteil || ''}`.toLowerCase();
+                const request = store.add({
+                    strasse: adr.strasse,
+                    plz: adr.plz,
+                    ort: adr.ort,
+                    ortsteil: adr.ortsteil || '',
+                    suchbegriff: suchbegriff
+                });
+                
+                request.onsuccess = () => {
+                    count++;
+                    const progress = (count / total) * 100;
+                    updateProgress(progress);
+                    if (count === total) resolve();
+                };
+                request.onerror = () => reject(request.error);
+            });
+        });
+    }
+    
+    // In IndexedDB suchen (optimiert für große Datenmengen)
+    async function searchInDB(searchTerm) {
+        return new Promise((resolve) => {
+            if (!db || searchTerm.length < 2) {
+                resolve([]);
+                return;
+            }
+            
+            const transaction = db.transaction([STORE_NAME], 'readonly');
+            const store = transaction.objectStore(STORE_NAME);
+            const index = store.index('suchbegriff');
+            const range = IDBKeyRange.bound(searchTerm, searchTerm + '\uffff');
+            const results = [];
+            
+            index.openCursor(range).onsuccess = (event) => {
+                const cursor = event.target.result;
+                if (cursor && results.length < 20) {
+                    results.push(cursor.value);
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+        });
+    }
+    
+    function updateProgress(percent) {
+        const progressBar = document.getElementById('progressBar');
+        const progressFill = document.querySelector('.progress-fill');
+        if (percent > 0 && percent < 100) {
+            progressBar.style.display = 'block';
+            progressFill.style.width = percent + '%';
+        } else {
+            setTimeout(() => {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+            }, 500);
+        }
+    }
+    
+    function formatAdresseForDisplay(adr) {
+        let result = adr.strasse;
+        if (adr.plz && adr.ort) {
+            result += `\n${adr.plz} ${adr.ort}`;
+        } else if (adr.ort) {
+            result += `\n${adr.ort}`;
+        }
+        if (adr.ortsteil && adr.ortsteil !== adr.ort && adr.ortsteil !== "") {
+            result += ` (${adr.ortsteil})`;
+        }
+        return result;
+    }
+    
+    async function loadAdressenFromGitHub() {
+        const statusBar = document.getElementById('statusBar');
+        statusBar.innerHTML = '📡 Lade Adressliste von GitHub...';
+        statusBar.style.background = '#fff3cd';
+        
+        try {
+            const response = await fetch(ADRESSEN_URL, {
+                cache: 'no-cache'
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            
+            const text = await response.text();
+            const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+            
+            const neueListe = [];
+            for (let line of lines) {
+                const parts = line.split(';');
+                if (parts.length >= 3) {
+                    neueListe.push({
+                        strasse: parts[0].trim(),
+                        plz: parts[1] ? parts[1].trim() : '',
+                        ort: parts[2] ? parts[2].trim() : '',
+                        ortsteil: parts[3] ? parts[3].trim() : '',
+                    });
+                } else if (parts.length === 1 && parts[0].trim()) {
+                    neueListe.push({
+                        strasse: parts[0].trim(),
+                        plz: '', ort: '', ortsteil: '',
+                    });
+                }
+            }
+            
+            adressListe = neueListe;
+            
+            if (db) {
+                await saveToIndexedDB(adressListe);
+            }
+            
+            localStorage.setItem('fahrtenbuch_adressen_count', adressListe.length);
+            localStorage.setItem('fahrtenbuch_adressen_datum', new Date().toISOString());
+            
+            statusBar.innerHTML = `✅ ${adressListe.length} Adressen geladen und indexiert`;
+            statusBar.style.background = '#d4edda';
+            
+            setTimeout(() => {
+                statusBar.style.background = '#e8f0fe';
+                statusBar.innerHTML = `📋 ${adressListe.length} Adressen verfügbar (IndexedDB)`;
+            }, 3000);
+            
+        } catch (error) {
+            console.error('Fehler:', error);
+            statusBar.innerHTML = `⚠️ Fehler beim Laden: ${error.message}`;
+            statusBar.style.background = '#f8d7da';
+            
+            const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
+            if (savedCount) {
+                statusBar.innerHTML = `⚠️ Offline-Modus: ${savedCount} Adressen im Cache`;
+                statusBar.style.background = '#fff3cd';
+            }
+        }
+    }
+    
+    async function setupAutocomplete(inputId, listId) {
+        const textarea = document.getElementById(inputId);
+        if (!textarea) return;
+        
+        const autocompleteList = document.getElementById(listId);
+        if (!autocompleteList) return;
+        
+        const newTextarea = textarea.cloneNode(true);
+        textarea.parentNode.replaceChild(newTextarea, textarea);
+        
+        const finalTextarea = newTextarea;
+        const finalList = autocompleteList;
+        
+        finalTextarea.addEventListener('input', async function() {
+            const value = this.value.toLowerCase();
+            
+            if (searchTimeout) clearTimeout(searchTimeout);
+            
+            if (value.length < 2) {
+                finalList.style.display = 'none';
+                return;
+            }
+            
+            searchTimeout = setTimeout(async () => {
+                const matches = await searchInDB(value);
+                
+                if (matches.length === 0) {
+                    finalList.style.display = 'none';
+                    return;
+                }
+                
+                finalList.innerHTML = '';
+                matches.slice(0, 15).forEach(adr => {
+                    const div = document.createElement('div');
+                    div.className = 'autocomplete-item';
+                    div.innerHTML = `
+                        <strong>${adr.strasse}</strong>
+                        <small>${adr.plz} ${adr.ort}${adr.ortsteil ? ' (' + adr.ortsteil + ')' : ''}</small>
+                    `;
+                    div.addEventListener('click', function() {
+                        finalTextarea.value = formatAdresseForDisplay(adr);
+                        finalList.style.display = 'none';
+                        finalTextarea.style.height = 'auto';
+                        finalTextarea.style.height = finalTextarea.scrollHeight + 'px';
+                    });
+                    finalList.appendChild(div);
+                });
+                finalList.style.display = 'block';
+            }, 150);
+        });
+        
+        document.addEventListener('click', function(e) {
+            if (e.target !== finalTextarea && !finalList.contains(e.target)) {
+                finalList.style.display = 'none';
+            }
+        });
+        
+        function adjustHeight() {
+            finalTextarea.style.height = 'auto';
+            finalTextarea.style.height = Math.max(80, finalTextarea.scrollHeight) + 'px';
+        }
+        
+        finalTextarea.addEventListener('input', adjustHeight);
+        finalTextarea.id = inputId;
+        
+        setTimeout(adjustHeight, 0);
+    }
+    
+    async function refreshAdressen() {
+        const statusBar = document.getElementById('statusBar');
+        statusBar.innerHTML = '🔄 Aktualisiere Adressen...';
+        await loadAdressenFromGitHub();
+    }
+    
+    // Initialisierung
+    async function init() {
+        await initDB();
+        
+        const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
+        if (savedCount) {
+            document.getElementById('statusBar').innerHTML = `📋 ${savedCount} Adressen im Cache (wird geladen...)`;
+        }
+        
+        await loadAdressenFromGitHub();
+        
+        setupAutocomplete('von', 'von-autocomplete');
+        setupAutocomplete('nach', 'nach-autocomplete');
+    }
+    
+    const fahrtartSelect = document.getElementById('fahrtart');
+    const kostentraegerField = document.getElementById('kostentraeger');
+    const kostentraegerHint = document.getElementById('kostentraegerHint');
+    
+    fahrtartSelect.addEventListener('change', function() {
+        if (this.value === 'karte') {
+            kostentraegerField.value = 'EC / CC';
+            kostentraegerField.readOnly = true;
+            kostentraegerField.style.background = '#f0f0f0';
+            kostentraegerHint.innerHTML = '💡 Kostenträger ist automatisch "EC / CC"';
+        } else {
+            if (kostentraegerField.value === 'EC / CC') {
+                kostentraegerField.value = '';
+            }
+            kostentraegerField.readOnly = false;
+            kostentraegerField.style.background = 'white';
+            kostentraegerHint.innerHTML = '';
+        }
+    });
+
+    function updateListe() {
+        const container = document.getElementById('fahrtenListe');
+        if (fahrten.length === 0) {
+            container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten erfasst</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        fahrten.forEach((f, index) => {
+            let artName = '';
+            if (f.art === 'bar') artName = 'Bar';
+            else if (f.art === 'karte') artName = 'Kartenzahlung';
+            else if (f.art === 'rechnung') artName = 'Rechnungsfahrt';
+            else artName = 'Krankenfahrt';
+            
+            const div = document.createElement('div');
+            div.className = `fahrt ${f.art}`;
+            div.innerHTML = `
+                <div class="fahrt-header">${escapeHtml(f.von)} → ${escapeHtml(f.nach)}</div>
+                <div class="fahrt-details">
+                    👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>
+                    💶 ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €<br>
+                    🏷️ ${artName}
+                </div>
+                <button class="delete-btn" onclick="deleteFahrt(${index})">❌ Löschen</button>
+            `;
+            container.appendChild(div);
+        });
+    }
+    
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function deleteFahrt(index) {
+        fahrten.splice(index, 1);
+        updateListe();
+        document.getElementById('summary').style.display = 'none';
+    }
+
+    function addFahrt() {
+        let von = document.getElementById('von').value.trim();
+        let nach = document.getElementById('nach').value.trim();
+        let fahrgast = document.getElementById('fahrgast').value.trim();
+        let kostentraeger = document.getElementById('kostentraeger').value.trim();
+        let preis = parseFloat(document.getElementById('preis').value);
+        let eigenanteil = parseFloat(document.getElementById('eigenanteil').value);
+        let trinkgeld = parseFloat(document.getElementById('trinkgeld').value);
+        const art = document.getElementById('fahrtart').value;
+
+        von = von.replace(/\n/g, ', ');
+        nach = nach.replace(/\n/g, ', ');
+        
+        if (isNaN(eigenanteil)) eigenanteil = 0;
+        if (isNaN(trinkgeld)) trinkgeld = 0;
+        
+        let fehler = '';
+        const errorDiv = document.getElementById('formError');
+        
+        if (art === 'bar') {
+            if (!von) fehler += 'Von ist Pflicht. ';
+            if (!nach) fehler += 'Nach ist Pflicht. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+        } else if (art === 'karte') {
+            if (!von) fehler += 'Von ist Pflicht. ';
+            if (!nach) fehler += 'Nach ist Pflicht. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+            kostentraeger = 'EC / CC';
+        } else if (art === 'rechnung' || art === 'kranken') {
+            if (!von) fehler += 'Von ist Pflicht. ';
+            if (!nach) fehler += 'Nach ist Pflicht. ';
+            if (!fahrgast) fehler += 'Fahrgast ist Pflicht. ';
+            if (!kostentraeger) fehler += 'Kostenträger ist Pflicht. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+        }
+        
+        if (fehler) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ ' + fehler;
+            return;
+        }
+        
+        errorDiv.style.display = 'none';
+        
+        fahrten.push({
+            von, nach, fahrgast, kostentraeger,
+            preis: isNaN(preis) ? 0 : preis,
+            eigenanteil, trinkgeld, art
+        });
+        
+        document.getElementById('von').value = '';
+        document.getElementById('nach').value = '';
+        document.getElementById('fahrgast').value = '';
+        document.getElementById('kostentraeger').value = '';
+        document.getElementById('preis').value = '';
+        document.getElementById('eigenanteil').value = '';
+        document.getElementById('trinkgeld').value = '';
+        document.getElementById('fahrtart').value = 'bar';
+        
+        kostentraegerField.readOnly = false;
+        kostentraegerField.style.background = 'white';
+        kostentraegerHint.innerHTML = '';
+        
+        updateListe();
+        document.getElementById('summary').style.display = 'none';
+        
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => {
+            scrollArea.scrollTop = scrollArea.scrollHeight;
+        }, 50);
+    }
+
+    function showSummary() {
+        if (fahrten.length === 0) {
+            alert('Keine Fahrten zum Auswerten.');
+            return;
+        }
+        
+        let totals = {
+            bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }
+        };
+        
+        let gesamtSumme = 0;
+        let gesamtTrinkgeld = 0;
+        let gesamtEigenanteil = 0;
+        
+        fahrten.forEach(f => {
+            const einnahme = f.preis + f.trinkgeld;
+            gesamtSumme += einnahme;
+            gesamtTrinkgeld += f.trinkgeld;
+            gesamtEigenanteil += f.eigenanteil;
+            
+            if (f.art === 'bar') {
+                totals.bar.summe += einnahme;
+                totals.bar.anzahl++;
+                totals.bar.trinkgeld += f.trinkgeld;
+                totals.bar.eigenanteil += f.eigenanteil;
+            } else if (f.art === 'karte') {
+                totals.karte.summe += einnahme;
+                totals.karte.anzahl++;
+                totals.karte.trinkgeld += f.trinkgeld;
+                totals.karte.eigenanteil += f.eigenanteil;
+            } else if (f.art === 'rechnung') {
+                totals.rechnung.summe += einnahme;
+                totals.rechnung.anzahl++;
+                totals.rechnung.trinkgeld += f.trinkgeld;
+                totals.rechnung.eigenanteil += f.eigenanteil;
+            } else if (f.art === 'kranken') {
+                totals.kranken.summe += einnahme;
+                totals.kranken.anzahl++;
+                totals.kranken.trinkgeld += f.trinkgeld;
+                totals.kranken.eigenanteil += f.eigenanteil;
+            }
+        });
+        
+        const html = `
+            <h3>📊 Schichtabrechnung</h3>
+            <p><strong>💰 Gesamteinnahme:</strong> ${gesamtSumme.toFixed(2)} €</p>
+            <p><strong>💶 Trinkgeld gesamt:</strong> ${gesamtTrinkgeld.toFixed(2)} €</p>
+            <p><strong>🧾 Eigenanteil gesamt:</strong> ${gesamtEigenanteil.toFixed(2)} €</p>
+            <hr>
+            <p><strong>🚕 Bar:</strong> ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)</p>
+            <p><strong>💳 Kartenzahlung:</strong> ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)</p>
+            <p><strong>🧾 Rechnungsfahrt:</strong> ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)</p>
+            <p><strong>🏥 Krankenfahrt:</strong> ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)</p>
+        `;
+        
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = html;
+        summaryDiv.style.display = 'block';
+        
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => {
+            summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 50);
+    }
+    
+    function resetAll() {
+        if (confirm('Alle Fahrten wirklich löschen?')) {
+            fahrten = [];
+            updateListe();
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('formError').style.display = 'none';
+        }
+    }
+
+    document.getElementById('addBtn').addEventListener('click', addFahrt);
+    document.getElementById('summaryBtn').addEventListener('click', showSummary);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
+    
+    init();
+    updateListe();
+</script>
+
+</body>
+</html>

@@ -26,7 +26,7 @@
         
         .fixed-header {
             background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             padding: 10px 12px;
             border-bottom: 1px solid #ddd;
             flex-shrink: 0;
@@ -302,26 +302,10 @@
             flex-shrink: 0;
         }
         
-        .summary-btn {
-            background: #27ae60;
+        .newshift-btn {
+            background: #2980b9;
             color: white;
-            flex: 1;
-            padding: 10px;
-            font-size: 14px;
-        }
-        
-        .reset-btn {
-            background: #c0392b;
-            color: white;
-            flex: 1;
-            padding: 10px;
-            font-size: 14px;
-        }
-        
-        .refresh-btn {
-            background: #3498db;
-            color: white;
-            flex: 0.3;
+            flex: 0.6;
             padding: 10px;
             font-size: 12px;
         }
@@ -329,7 +313,31 @@
         .send-btn {
             background: #f39c12;
             color: white;
-            flex: 0.4;
+            flex: 0.6;
+            padding: 10px;
+            font-size: 12px;
+        }
+        
+        .summary-btn {
+            background: #27ae60;
+            color: white;
+            flex: 0.6;
+            padding: 10px;
+            font-size: 12px;
+        }
+        
+        .reset-btn {
+            background: #c0392b;
+            color: white;
+            flex: 0.5;
+            padding: 10px;
+            font-size: 12px;
+        }
+        
+        .refresh-btn {
+            background: #3498db;
+            color: white;
+            flex: 0.3;
             padding: 10px;
             font-size: 12px;
         }
@@ -366,6 +374,10 @@
             margin-top: 0;
         }
         
+        .modal-content p {
+            margin: 10px 0;
+        }
+        
         .modal-content input {
             width: 100%;
             padding: 10px;
@@ -380,41 +392,16 @@
             width: 100%;
         }
         
-        /* Druck-Styles */
-        @media print {
-            body * {
-                visibility: hidden;
-            }
-            .print-report, .print-report * {
-                visibility: visible;
-            }
-            .print-report {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                padding: 20px;
-                font-family: Arial, Helvetica, sans-serif;
-            }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
         }
         
-        .print-report {
-            font-family: Arial, Helvetica, sans-serif;
-            line-height: 1.4;
-            padding: 20px;
+        .modal-buttons button {
+            margin-top: 0;
+            flex: 1;
         }
-        .print-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
-        .print-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
-        .print-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
-        .print-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
-        .print-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
-        .print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .print-report th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
-        .print-report td { padding: 5px 6px; border-bottom: 1px solid #eee; }
-        .print-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
-        .print-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
-        .print-report hr { margin: 20px 0; }
-        .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
     </style>
 </head>
 <body>
@@ -469,6 +456,7 @@
     <button class="refresh-btn" id="refreshBtn">🔄</button>
     <button class="send-btn" id="sendBtn">📧 Senden</button>
     <button class="summary-btn" id="summaryBtn">📊 Schicht</button>
+    <button class="newshift-btn" id="newShiftBtn">🆕 Neue Schicht</button>
     <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
 
@@ -479,6 +467,18 @@
         <input type="email" id="emailRecipient" placeholder="empfaenger@example.com">
         <button id="saveEmailBtn">💾 Speichern</button>
         <button id="closeEmailBtn" style="background:#95a5a6;">Schließen</button>
+    </div>
+</div>
+
+<div id="confirmModal" class="modal">
+    <div class="modal-content">
+        <h4>🆕 Neue Schicht starten?</h4>
+        <p>Möchten Sie die aktuelle Schicht vorher per E-Mail senden?</p>
+        <div class="modal-buttons">
+            <button id="confirmSendBtn" style="background:#f39c12;">📧 Ja, senden</button>
+            <button id="confirmDeleteBtn" style="background:#c0392b;">🗑 Nein, löschen</button>
+            <button id="confirmCancelBtn" style="background:#95a5a6;">Abbrechen</button>
+        </div>
     </div>
 </div>
 
@@ -733,10 +733,10 @@
         if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
         
         let gruppen = {
-            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
+            bar: { name: "🚕 Bar", summe: 0, trinkgeld: 0, anzahl: 0 },
+            rechnung: { name: "🧾 Rechnungsfahrt", summe: 0, trinkgeld: 0, anzahl: 0 },
+            kranken: { name: "🏥 Krankenfahrt", summe: 0, trinkgeld: 0, anzahl: 0 },
+            karte: { name: "💳 Kartenzahlung", summe: 0, trinkgeld: 0, anzahl: 0 }
         };
         
         let gesamtEinnahme = 0;
@@ -745,22 +745,18 @@
             const einnahme = f.preis + f.trinkgeld;
             gesamtEinnahme += einnahme;
             if (f.art === 'bar') {
-                gruppen.bar.fahrten.push(f);
                 gruppen.bar.summe += einnahme;
                 gruppen.bar.trinkgeld += f.trinkgeld;
                 gruppen.bar.anzahl++;
             } else if (f.art === 'rechnung') {
-                gruppen.rechnung.fahrten.push(f);
                 gruppen.rechnung.summe += einnahme;
                 gruppen.rechnung.trinkgeld += f.trinkgeld;
                 gruppen.rechnung.anzahl++;
             } else if (f.art === 'kranken') {
-                gruppen.kranken.fahrten.push(f);
                 gruppen.kranken.summe += einnahme;
                 gruppen.kranken.trinkgeld += f.trinkgeld;
                 gruppen.kranken.anzahl++;
             } else if (f.art === 'karte') {
-                gruppen.karte.fahrten.push(f);
                 gruppen.karte.summe += einnahme;
                 gruppen.karte.trinkgeld += f.trinkgeld;
                 gruppen.karte.anzahl++;
@@ -772,19 +768,14 @@
         text += `═`.repeat(50) + `\n\n`;
         text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
         text += `📈 AUFTEILUNG NACH FAHRTART:\n`;
-        text += `─`.repeat(40) + `\n\n`;
-        
-        const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
-        for (let key of reihenfolge) {
-            const g = gruppen[key];
-            if (g.anzahl === 0) continue;
-            text += `${g.name}: ${g.anzahl} Fahrten, ${g.summe.toFixed(2)} € (TG: ${g.trinkgeld.toFixed(2)} €)\n`;
-        }
-        
-        text += `\n💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen): ${gruppen.karte.trinkgeld.toFixed(2)} €\n\n`;
+        text += `─`.repeat(40) + `\n`;
+        text += `🚕 Bar:         ${gruppen.bar.anzahl} Fahrten, ${gruppen.bar.summe.toFixed(2)} € (TG: ${gruppen.bar.trinkgeld.toFixed(2)} €)\n`;
+        text += `💳 Karte:       ${gruppen.karte.anzahl} Fahrten, ${gruppen.karte.summe.toFixed(2)} € (TG: ${gruppen.karte.trinkgeld.toFixed(2)} €)\n`;
+        text += `🧾 Rechnung:    ${gruppen.rechnung.anzahl} Fahrten, ${gruppen.rechnung.summe.toFixed(2)} € (TG: ${gruppen.rechnung.trinkgeld.toFixed(2)} €)\n`;
+        text += `🏥 Kranken:     ${gruppen.kranken.anzahl} Fahrten, ${gruppen.kranken.summe.toFixed(2)} € (TG: ${gruppen.kranken.trinkgeld.toFixed(2)} €)\n\n`;
+        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen): ${gruppen.karte.trinkgeld.toFixed(2)} €\n\n`;
         text += `─`.repeat(40) + `\n`;
         text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
-        text += `\n(Die detaillierte Auflistung aller Fahrten finden Sie in der App unter "Schicht")`;
         
         return text;
     }
@@ -792,14 +783,14 @@
     function sendEmail() {
         if (fahrten.length === 0) {
             alert('Keine Fahrten zum Versenden.');
-            return;
+            return false;
         }
         
         if (!emailRecipient) {
             alert('Bitte zuerst die Empfänger-Adresse unter "📧 Senden" speichern.');
             document.getElementById('emailModal').style.display = 'flex';
             document.getElementById('emailRecipient').value = emailRecipient;
-            return;
+            return false;
         }
         
         const betreff = encodeURIComponent(`Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`);
@@ -807,6 +798,23 @@
         const mailtoLink = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
         
         window.location.href = mailtoLink;
+        return true;
+    }
+    
+    function clearAllFahrten() {
+        fahrten = [];
+        saveAndUpdate();
+        document.getElementById('summary').style.display = 'none';
+    }
+    
+    function newShift() {
+        if (fahrten.length === 0) {
+            alert('Keine Fahrten vorhanden. Neue Schicht kann gestartet werden.');
+            return;
+        }
+        
+        const modal = document.getElementById('confirmModal');
+        modal.style.display = 'flex';
     }
     
     function getPlainTextSummary() {
@@ -999,11 +1007,8 @@
     }
     
     function resetAll() {
-        if (confirm('Alle Fahrten löschen?')) {
-            fahrten = [];
-            saveAndUpdate();
-            document.getElementById('summary').style.display = 'none';
-            document.getElementById('formError').style.display = 'none';
+        if (confirm('Alle Fahrten wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.')) {
+            clearAllFahrten();
         }
     }
 
@@ -1011,6 +1016,7 @@
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
+    document.getElementById('newShiftBtn').addEventListener('click', newShift);
     document.getElementById('sendBtn').addEventListener('click', () => {
         if (emailRecipient) {
             sendEmail();
@@ -1019,16 +1025,32 @@
             document.getElementById('emailRecipient').value = '';
         }
     });
+    
+    // Modal E-Mail
     document.getElementById('saveEmailBtn').addEventListener('click', () => {
         emailRecipient = document.getElementById('emailRecipient').value.trim();
         localStorage.setItem('fahrtenbuch_email', emailRecipient);
         document.getElementById('emailModal').style.display = 'none';
-        if (fahrten.length > 0) {
-            sendEmail();
-        }
     });
     document.getElementById('closeEmailBtn').addEventListener('click', () => {
         document.getElementById('emailModal').style.display = 'none';
+    });
+    
+    // Confirm Modal für Neue Schicht
+    document.getElementById('confirmSendBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').style.display = 'none';
+        if (sendEmail()) {
+            setTimeout(() => {
+                clearAllFahrten();
+            }, 500);
+        }
+    });
+    document.getElementById('confirmDeleteBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').style.display = 'none';
+        clearAllFahrten();
+    });
+    document.getElementById('confirmCancelBtn').addEventListener('click', () => {
+        document.getElementById('confirmModal').style.display = 'none';
     });
     
     init();

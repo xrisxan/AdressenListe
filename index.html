@@ -326,7 +326,7 @@
             font-size: 12px;
         }
         
-        .share-btn {
+        .send-btn {
             background: #f39c12;
             color: white;
             flex: 0.4;
@@ -380,7 +380,7 @@
             width: 100%;
         }
         
-        /* Druck-Styles für PDF */
+        /* Druck-Styles */
         @media print {
             body * {
                 visibility: hidden;
@@ -416,8 +416,6 @@
         .print-report hr { margin: 20px 0; }
         .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
     </style>
-    <!-- PDF Bibliothek html2pdf -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -469,7 +467,7 @@
 
 <div class="action-bar">
     <button class="refresh-btn" id="refreshBtn">🔄</button>
-    <button class="share-btn" id="shareBtn">📧 Senden</button>
+    <button class="send-btn" id="sendBtn">📧 Senden</button>
     <button class="summary-btn" id="summaryBtn">📊 Schicht</button>
     <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
@@ -481,13 +479,6 @@
         <input type="email" id="emailRecipient" placeholder="empfaenger@example.com">
         <button id="saveEmailBtn">💾 Speichern</button>
         <button id="closeEmailBtn" style="background:#95a5a6;">Schließen</button>
-    </div>
-</div>
-
-<div id="loadingModal" class="modal">
-    <div class="modal-content">
-        <h4>📄 Abrechnung wird erstellt...</h4>
-        <div id="loadingStatus">Bitte warten, PDF wird generiert...</div>
     </div>
 </div>
 
@@ -738,114 +729,14 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    function getPDFHTML() {
-        if (fahrten.length === 0) return '<div class="print-report"><p>Keine Fahrten erfasst.</p></div>';
-        
-        let gruppen = {
-            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#4caf50" },
-            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#2196f3" },
-            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#f44336" },
-            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#9c27b0" }
-        };
-        
-        let gesamtEinnahme = 0;
-        
-        fahrten.forEach(f => {
-            const einnahme = f.preis + f.trinkgeld;
-            gesamtEinnahme += einnahme;
-            
-            if (f.art === 'bar') {
-                gruppen.bar.fahrten.push(f);
-                gruppen.bar.summe += einnahme;
-                gruppen.bar.trinkgeld += f.trinkgeld;
-                gruppen.bar.anzahl++;
-            } else if (f.art === 'rechnung') {
-                gruppen.rechnung.fahrten.push(f);
-                gruppen.rechnung.summe += einnahme;
-                gruppen.rechnung.trinkgeld += f.trinkgeld;
-                gruppen.rechnung.anzahl++;
-            } else if (f.art === 'kranken') {
-                gruppen.kranken.fahrten.push(f);
-                gruppen.kranken.summe += einnahme;
-                gruppen.kranken.trinkgeld += f.trinkgeld;
-                gruppen.kranken.anzahl++;
-            } else if (f.art === 'karte') {
-                gruppen.karte.fahrten.push(f);
-                gruppen.karte.summe += einnahme;
-                gruppen.karte.trinkgeld += f.trinkgeld;
-                gruppen.karte.anzahl++;
-            }
-        });
-        
-        const datum = new Date().toLocaleString('de-DE');
-        let html = `<div class="print-report">
-            <h1>📊 FAHRTENBUCH ABRECHNUNG</h1>
-            <div class="date">${datum}</div>
-            <div class="total">💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €</div>`;
-        
-        const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
-        for (let key of reihenfolge) {
-            const g = gruppen[key];
-            if (g.anzahl === 0) continue;
-            
-            html += `
-                <div class="gruppe">
-                    <div class="gruppen-titel" style="border-left-color: ${g.farbe};">${g.name} (${g.anzahl} Fahrten)</div>
-                    <table class="fahrten-tabelle">
-                        <thead>
-                            <tr><th>#</th><th>Von</th><th>Nach</th><th>Fahrgast</th><th>Kostenträger</th><th>Preis</th><th>TG</th></tr>
-                        </thead>
-                        <tbody>
-            `;
-            
-            g.fahrten.forEach((f, idx) => {
-                let vonShort = f.von.length > 30 ? f.von.substring(0, 27) + '...' : f.von;
-                let nachShort = f.nach.length > 30 ? f.nach.substring(0, 27) + '...' : f.nach;
-                html += `
-                    <tr>
-                        <td>${idx+1}</td>
-                        <td>${escapeHtmlSimple(vonShort)}</td>
-                        <td>${escapeHtmlSimple(nachShort)}</td>
-                        <td>${escapeHtmlSimple(f.fahrgast || '-')}</td>
-                        <td>${escapeHtmlSimple(f.kostentraeger || '-')}</td>
-                        <td style="text-align:right">${f.preis.toFixed(2)} €</td>
-                        <td style="text-align:right">${f.trinkgeld.toFixed(2)} €</td>
-                    </tr>
-                `;
-            });
-            
-            html += `
-                        </tbody>
-                    </table>
-                    <div class="summe">📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)</div>
-                </div>
-            `;
-        }
-        
-        const kartenTrinkgeld = gruppen.karte.trinkgeld;
-        html += `
-                <div class="karten-tip">
-                    💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):<br>
-                    <strong>${kartenTrinkgeld.toFixed(2)} €</strong>
-                </div>
-                <hr>
-                <div class="footer">
-                    📋 Gesamt: ${fahrten.length} Fahrten | Erstellt mit Digitalem Fahrtenbuch
-                </div>
-            </div>
-        `;
-        
-        return html;
-    }
-    
     function getEmailText() {
         if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
         
         let gruppen = {
-            bar: { name: "Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            rechnung: { name: "Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            kranken: { name: "Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            karte: { name: "Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
+            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
         };
         
         let gesamtEinnahme = 0;
@@ -880,110 +771,42 @@
         let text = `📊 FAHRTENBUCH ABRECHNUNG - ${datum}\n`;
         text += `═`.repeat(50) + `\n\n`;
         text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
-        text += `─`.repeat(50) + `\n\n`;
+        text += `📈 AUFTEILUNG NACH FAHRTART:\n`;
+        text += `─`.repeat(40) + `\n\n`;
         
         const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
         for (let key of reihenfolge) {
             const g = gruppen[key];
             if (g.anzahl === 0) continue;
-            
-            text += `${g.name} (${g.anzahl} Fahrten)\n`;
-            text += `${' '.repeat(40)}\n`;
-            
-            g.fahrten.forEach((f, idx) => {
-                text += `${idx+1}. ${f.von} → ${f.nach}\n`;
-                text += `   ${f.preis}€ | TG: ${f.trinkgeld}€ | ${f.fahrgast || '-'} | ${f.kostentraeger || '-'}\n`;
-            });
-            
-            text += `\n   📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)\n`;
-            text += `\n${'─'.repeat(40)}\n\n`;
+            text += `${g.name}: ${g.anzahl} Fahrten, ${g.summe.toFixed(2)} € (TG: ${g.trinkgeld.toFixed(2)} €)\n`;
         }
         
-        const kartenTrinkgeld = gruppen.karte.trinkgeld;
-        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):\n`;
-        text += `   → ${kartenTrinkgeld.toFixed(2)} €\n\n`;
-        text += `═`.repeat(50) + `\n`;
+        text += `\n💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen): ${gruppen.karte.trinkgeld.toFixed(2)} €\n\n`;
+        text += `─`.repeat(40) + `\n`;
         text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
-        text += `\n📎 Im Anhang finden Sie die detaillierte PDF-Abrechnung.`;
+        text += `\n(Die detaillierte Auflistung aller Fahrten finden Sie in der App unter "Schicht")`;
         
         return text;
     }
     
-    async function shareReport() {
+    function sendEmail() {
         if (fahrten.length === 0) {
             alert('Keine Fahrten zum Versenden.');
             return;
         }
         
         if (!emailRecipient) {
-            alert('Bitte zuerst die Empfänger-Adresse unter "📧 Senden" speichern.\n\nKlicken Sie auf den Button und geben Sie die E-Mail-Adresse des Chefs/Buchhaltung ein.');
+            alert('Bitte zuerst die Empfänger-Adresse unter "📧 Senden" speichern.');
             document.getElementById('emailModal').style.display = 'flex';
             document.getElementById('emailRecipient').value = emailRecipient;
             return;
         }
         
-        const loadingModal = document.getElementById('loadingModal');
-        const loadingStatus = document.getElementById('loadingStatus');
-        loadingModal.style.display = 'flex';
-        loadingStatus.innerHTML = 'Erstelle PDF...';
+        const betreff = encodeURIComponent(`Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`);
+        const body = encodeURIComponent(getEmailText());
+        const mailtoLink = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
         
-        try {
-            const htmlContent = getPDFHTML();
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '-9999px';
-            container.style.width = '800px';
-            container.style.backgroundColor = 'white';
-            container.innerHTML = htmlContent;
-            document.body.appendChild(container);
-            
-            loadingStatus.innerHTML = 'Generiere PDF Datei...';
-            await new Promise(resolve => setTimeout(resolve, 200));
-            
-            const opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: false, letterRendering: true, logging: false },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            
-            const pdfBlob = await html2pdf().set(opt).from(container).outputPdf('blob');
-            document.body.removeChild(container);
-            
-            loadingStatus.innerHTML = 'Öffne Teilen-Menü...';
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Datei für Teilen vorbereiten
-            const file = new File([pdfBlob], `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`, { type: 'application/pdf' });
-            
-            // E-Mail Text vorbereiten
-            const betreff = `Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`;
-            const body = getEmailText();
-            
-            loadingModal.style.display = 'none';
-            
-            // Teilen-Menü öffnen (funktioniert auf iOS und Android)
-            if (navigator.share) {
-                // Moderner Browser mit Web Share API
-                await navigator.share({
-                    title: 'Fahrtenbuch Abrechnung',
-                    text: `${betreff}\n\n${body}`,
-                    files: [file]
-                });
-            } else {
-                // Fallback: E-Mail mit vorausgefülltem Text (ohne Anhang, aber mit Hinweis)
-                const mailtoLink = `mailto:${emailRecipient}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(body + '\n\n(Die PDF-Datei konnte nicht automatisch angehängt werden. Bitte speichern Sie die PDF separat und hängen Sie sie an.)')}`;
-                window.location.href = mailtoLink;
-                alert('PDF wurde erstellt. Bitte hängen Sie die Datei manuell an, da Ihr Browser keine automatischen Anhänge unterstützt.\n\nDie PDF-Datei wurde im Download-Ordner gespeichert.');
-            }
-            
-        } catch (error) {
-            console.error('Fehler:', error);
-            loadingModal.style.display = 'none';
-            alert('Fehler beim Erstellen des PDFs: ' + error.message);
-        }
+        window.location.href = mailtoLink;
     }
     
     function getPlainTextSummary() {
@@ -1188,9 +1011,9 @@
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('shareBtn').addEventListener('click', () => {
+    document.getElementById('sendBtn').addEventListener('click', () => {
         if (emailRecipient) {
-            shareReport();
+            sendEmail();
         } else {
             document.getElementById('emailModal').style.display = 'flex';
             document.getElementById('emailRecipient').value = '';
@@ -1201,14 +1024,11 @@
         localStorage.setItem('fahrtenbuch_email', emailRecipient);
         document.getElementById('emailModal').style.display = 'none';
         if (fahrten.length > 0) {
-            shareReport();
+            sendEmail();
         }
     });
     document.getElementById('closeEmailBtn').addEventListener('click', () => {
         document.getElementById('emailModal').style.display = 'none';
-    });
-    document.getElementById('closePdfModalBtn')?.addEventListener('click', () => {
-        document.getElementById('loadingModal').style.display = 'none';
     });
     
     init();

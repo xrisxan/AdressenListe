@@ -279,6 +279,8 @@
             border-radius: 8px;
             margin: 0;
             font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
         }
         
         .summary-panel h3 {
@@ -362,6 +364,12 @@
             color: #27ae60;
             margin-left: 8px;
         }
+        
+        .tip-hint {
+            font-size: 11px;
+            color: #e67e22;
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
@@ -402,6 +410,7 @@
             <div class="info-text" id="kostentraegerHint"></div>
             <div id="statusBar" class="status-bar">📡 Lade Adressliste...</div>
             <div id="progressBar" class="progress-bar"><div class="progress-fill"></div></div>
+            <div class="tip-hint">💡 Hinweis: Trinkgeld bei Kartenzahlung wird separat ausgewiesen (geht nicht in die Tasche)</div>
         </div>
     </div>
 </div>
@@ -443,7 +452,6 @@
     const DB_VERSION = 1;
     const STORE_NAME = 'adressen';
     
-    // ========== PERSISTENTE SPEICHERUNG ==========
     function saveFahrtenToLocalStorage() {
         localStorage.setItem('fahrtenbuch_fahrten', JSON.stringify(fahrten));
     }
@@ -464,7 +472,6 @@
         saveFahrtenToLocalStorage();
         updateListe();
     }
-    // =============================================
     
     function initDB() {
         return new Promise((resolve, reject) => {
@@ -675,23 +682,88 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
+    // ========== AKTUALISIERTE ABRECHNUNG MIT TRINKGELD-DETAILS ==========
     function getSummaryText() {
         if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
-        let totals = { bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 } };
-        let gesamtSumme = 0, gesamtTrinkgeld = 0, gesamtEigenanteil = 0;
+        
+        let totals = {
+            bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
+            kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }
+        };
+        
+        let gesamtSumme = 0;
+        let gesamtTrinkgeldBar = 0;      // Trinkgeld Bar (geht in die Tasche)
+        let gesamtTrinkgeldKarte = 0;    // Trinkgeld Kartenzahlung (extra)
+        let gesamtEigenanteil = 0;
+        
         fahrten.forEach(f => {
             const einnahme = f.preis + f.trinkgeld;
             gesamtSumme += einnahme;
-            gesamtTrinkgeld += f.trinkgeld;
             gesamtEigenanteil += f.eigenanteil;
-            if (f.art === 'bar') { totals.bar.summe += einnahme; totals.bar.anzahl++; totals.bar.trinkgeld += f.trinkgeld; totals.bar.eigenanteil += f.eigenanteil; }
-            else if (f.art === 'karte') { totals.karte.summe += einnahme; totals.karte.anzahl++; totals.karte.trinkgeld += f.trinkgeld; totals.karte.eigenanteil += f.eigenanteil; }
-            else if (f.art === 'rechnung') { totals.rechnung.summe += einnahme; totals.rechnung.anzahl++; totals.rechnung.trinkgeld += f.trinkgeld; totals.rechnung.eigenanteil += f.eigenanteil; }
-            else if (f.art === 'kranken') { totals.kranken.summe += einnahme; totals.kranken.anzahl++; totals.kranken.trinkgeld += f.trinkgeld; totals.kranken.eigenanteil += f.eigenanteil; }
+            
+            if (f.art === 'bar') {
+                totals.bar.summe += einnahme;
+                totals.bar.anzahl++;
+                totals.bar.trinkgeld += f.trinkgeld;
+                totals.bar.eigenanteil += f.eigenanteil;
+                gesamtTrinkgeldBar += f.trinkgeld;
+            } else if (f.art === 'karte') {
+                totals.karte.summe += einnahme;
+                totals.karte.anzahl++;
+                totals.karte.trinkgeld += f.trinkgeld;
+                totals.karte.eigenanteil += f.eigenanteil;
+                gesamtTrinkgeldKarte += f.trinkgeld;
+            } else if (f.art === 'rechnung') {
+                totals.rechnung.summe += einnahme;
+                totals.rechnung.anzahl++;
+                totals.rechnung.trinkgeld += f.trinkgeld;
+                totals.rechnung.eigenanteil += f.eigenanteil;
+                gesamtTrinkgeldBar += f.trinkgeld;  // Rechnung auch Bar-Trinkgeld?
+            } else if (f.art === 'kranken') {
+                totals.kranken.summe += einnahme;
+                totals.kranken.anzahl++;
+                totals.kranken.trinkgeld += f.trinkgeld;
+                totals.kranken.eigenanteil += f.eigenanteil;
+                gesamtTrinkgeldBar += f.trinkgeld;
+            }
         });
+        
         const datum = new Date().toLocaleString('de-DE');
-        return `📊 Fahrtenbuch Abrechnung - ${datum}\n================================\n\n💰 Gesamteinnahme: ${gesamtSumme.toFixed(2)} €\n💶 Trinkgeld gesamt: ${gesamtTrinkgeld.toFixed(2)} €\n🧾 Eigenanteil gesamt: ${gesamtEigenanteil.toFixed(2)} €\n\n🚕 Bar: ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)\n💳 Kartenzahlung: ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)\n🧾 Rechnungsfahrt: ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)\n🏥 Krankenfahrt: ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)\n================================\n📋 Anzahl Fahrten insgesamt: ${fahrten.length}\n`;
+        
+        let text = `📊 FAHRTENBUCH ABRECHNUNG - ${datum}\n`;
+        text += `══════════════════════════════════════════════════════════\n\n`;
+        text += `💰 GESAMTEINNAHME (inkl. Trinkgeld):  ${gesamtSumme.toFixed(2)} €\n`;
+        text += `🧾 Eigenanteil gesamt:               ${gesamtEigenanteil.toFixed(2)} €\n\n`;
+        text += `💵 TRINKGELD AUFTEILUNG:\n`;
+        text += `   🟢 Bar / Rechnung / Krankenfahrt:  ${gesamtTrinkgeldBar.toFixed(2)} € (geht in die Tasche)\n`;
+        text += `   🔵 Kartenzahlung:                  ${gesamtTrinkgeldKarte.toFixed(2)} € (extra ausgewiesen)\n\n`;
+        text += `📈 SUMME NACH FAHRTART:\n`;
+        text += `   🚕 Bar:         ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)\n`;
+        text += `   💳 Karte:       ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)\n`;
+        text += `   🧾 Rechnung:    ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)\n`;
+        text += `   🏥 Kranken:     ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)\n\n`;
+        text += `📋 DETAILLISTE ALLER FAHRTEN:\n`;
+        text += `──────────────────────────────────────────────────────────────\n`;
+        
+        fahrten.forEach((f, idx) => {
+            let artSymbol = f.art === 'bar' ? '🚕' : f.art === 'karte' ? '💳' : f.art === 'rechnung' ? '🧾' : '🏥';
+            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
+            text += `${idx+1}. ${artSymbol} ${artName}: ${f.von} → ${f.nach}\n`;
+            text += `   Fahrgast: ${f.fahrgast || '-'} | Kostenträger: ${f.kostentraeger || '-'}\n`;
+            text += `   Preis: ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €\n`;
+            text += `   ────────────────────────────────────────────────────────────\n`;
+        });
+        
+        text += `\n══════════════════════════════════════════════════════════\n`;
+        text += `📋 Anzahl Fahrten insgesamt: ${fahrten.length}\n`;
+        text += `💵 In die Tasche (Bar-Trinkgeld): ${gesamtTrinkgeldBar.toFixed(2)} €\n`;
+        text += `💰 Trinkgeld Kartenzahlung (extra): ${gesamtTrinkgeldKarte.toFixed(2)} €\n`;
+        
+        return text;
     }
+    // =========================================================================
     
     function sendEmail() {
         if (fahrten.length === 0) { alert('Keine Fahrten zum Versenden.'); return false; }
@@ -788,67 +860,4 @@
         }
         errorDiv.style.display = 'none';
         
-        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil, trinkgeld, art });
-        
-        document.getElementById('von').value = '';
-        document.getElementById('nach').value = '';
-        document.getElementById('fahrgast').value = '';
-        document.getElementById('kostentraeger').value = '';
-        document.getElementById('preis').value = '';
-        document.getElementById('eigenanteil').value = '';
-        document.getElementById('trinkgeld').value = '';
-        document.getElementById('fahrtart').value = 'bar';
-        kostentraegerField.readOnly = false;
-        kostentraegerField.style.background = 'white';
-        kostentraegerHint.innerHTML = '';
-        
-        saveAndUpdate();
-        document.getElementById('summary').style.display = 'none';
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 50);
-    }
-
-    function showSummary() {
-        if (fahrten.length === 0) { alert('Keine Fahrten zum Auswerten.'); return; }
-        const summaryDiv = document.getElementById('summary');
-        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail senden</button>
-            <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
-        summaryDiv.style.display = 'block';
-        document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());
-        document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
-    }
-    
-    function resetAll() {
-        if (confirm('Alle Fahrten wirklich löschen?')) {
-            fahrten = [];
-            saveAndUpdate();
-            document.getElementById('summary').style.display = 'none';
-            document.getElementById('formError').style.display = 'none';
-        }
-    }
-
-    document.getElementById('addBtn').addEventListener('click', addFahrt);
-    document.getElementById('summaryBtn').addEventListener('click', showSummary);
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
-    document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('emailSettingsBtn').addEventListener('click', () => {
-        document.getElementById('emailModal').style.display = 'flex';
-        document.getElementById('emailRecipient').value = emailRecipient;
-    });
-    document.getElementById('saveEmailBtn').addEventListener('click', () => {
-        emailRecipient = document.getElementById('emailRecipient').value.trim();
-        localStorage.setItem('fahrtenbuch_email', emailRecipient);
-        document.getElementById('emailModal').style.display = 'none';
-    });
-    document.getElementById('closeEmailBtn').addEventListener('click', () => {
-        document.getElementById('emailModal').style.display = 'none';
-    });
-    
-    init();
-</script>
-
-</body>
-</html>
+        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil

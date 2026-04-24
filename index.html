@@ -271,6 +271,16 @@
             margin-bottom: 16px;
         }
         
+        .summary-panel pre {
+            white-space: pre-wrap;
+            font-family: inherit;
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin: 0;
+            font-size: 13px;
+        }
+        
         .summary-panel h3 {
             margin-top: 0;
         }
@@ -308,7 +318,6 @@
             flex: 0.4;
         }
         
-        /* Modal für E-Mail-Einstellungen */
         .modal {
             display: none;
             position: fixed;
@@ -347,13 +356,19 @@
             margin-top: 10px;
             width: 100%;
         }
+        
+        .auto-save-badge {
+            font-size: 11px;
+            color: #27ae60;
+            margin-left: 8px;
+        }
     </style>
 </head>
 <body>
 
 <div class="fixed-header">
     <div class="form-group">
-        <h3>📝 Neue Fahrt</h3>
+        <h3>📝 Neue Fahrt <span class="auto-save-badge">✓ automatisch gespeichert</span></h3>
         <div class="input-grid">
             <div class="input-row">
                 <div class="input-wrapper">
@@ -405,7 +420,6 @@
     <button class="reset-btn" id="resetBtn">🗑 Alle löschen</button>
 </div>
 
-<!-- Modal für E-Mail-Einstellungen -->
 <div id="emailModal" class="modal">
     <div class="modal-content">
         <h4>📧 E-Mail Einstellungen</h4>
@@ -422,16 +436,52 @@
     let db = null;
     let searchTimeout = null;
     
-    // E-Mail-Einstellungen
     let emailRecipient = localStorage.getItem('fahrtenbuch_email') || '';
     
-    // ========== DIE ADRESSEN WERDEN AUTOMATISCH AUS DEM SELBEN VERZEICHNIS GELADEN ==========
     const ADRESSEN_URL = 'adressen.txt';
-    // ========================================================================================
-    
     const DB_NAME = 'FahrtenbuchDB';
     const DB_VERSION = 1;
     const STORE_NAME = 'adressen';
+    
+    // ========== PERSISTENTE SPEICHERUNG DER FAHRTEN ==========
+    function saveFahrtenToLocalStorage() {
+        localStorage.setItem('fahrtenbuch_fahrten', JSON.stringify(fahrten));
+        // Kleine Rückmeldung im Status (optional)
+        const statusBar = document.getElementById('statusBar');
+        const originalText = statusBar.innerHTML;
+        if (!originalText.includes('💾')) {
+            statusBar.innerHTML = `💾 ${fahrten.length} Fahrten gespeichert`;
+            statusBar.style.background = '#d4edda';
+            setTimeout(() => {
+                if (document.getElementById('statusBar')) {
+                    document.getElementById('statusBar').innerHTML = originalText;
+                    document.getElementById('statusBar').style.background = '#e8f0fe';
+                }
+            }, 1500);
+        }
+    }
+    
+    function loadFahrtenFromLocalStorage() {
+        const saved = localStorage.getItem('fahrtenbuch_fahrten');
+        if (saved) {
+            try {
+                fahrten = JSON.parse(saved);
+                updateListe();
+            } catch(e) {
+                console.error('Fehler beim Laden der Fahrten:', e);
+                fahrten = [];
+            }
+        } else {
+            fahrten = [];
+        }
+    }
+    
+    // Nach jeder Änderung speichern
+    function saveAndUpdate() {
+        saveFahrtenToLocalStorage();
+        updateListe();
+    }
+    // ========================================================
     
     function initDB() {
         return new Promise((resolve, reject) => {
@@ -679,6 +729,9 @@
     }
     
     async function init() {
+        // Fahrten aus localStorage laden
+        loadFahrtenFromLocalStorage();
+        
         await initDB();
         
         const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
@@ -692,7 +745,6 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
-    // E-Mail-Funktionen
     function getSummaryText() {
         if (fahrten.length === 0) {
             return 'Keine Fahrten erfasst.';
@@ -861,7 +913,7 @@
 
     function deleteFahrt(index) {
         fahrten.splice(index, 1);
-        updateListe();
+        saveAndUpdate();
         document.getElementById('summary').style.display = 'none';
     }
 
@@ -901,96 +953,4 @@
             if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
         }
         
-        if (fehler) {
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = '❌ ' + fehler;
-            return;
-        }
-        
-        errorDiv.style.display = 'none';
-        
-        fahrten.push({
-            von, nach, fahrgast, kostentraeger,
-            preis: isNaN(preis) ? 0 : preis,
-            eigenanteil, trinkgeld, art
-        });
-        
-        document.getElementById('von').value = '';
-        document.getElementById('nach').value = '';
-        document.getElementById('fahrgast').value = '';
-        document.getElementById('kostentraeger').value = '';
-        document.getElementById('preis').value = '';
-        document.getElementById('eigenanteil').value = '';
-        document.getElementById('trinkgeld').value = '';
-        document.getElementById('fahrtart').value = 'bar';
-        
-        kostentraegerField.readOnly = false;
-        kostentraegerField.style.background = 'white';
-        kostentraegerHint.innerHTML = '';
-        
-        updateListe();
-        document.getElementById('summary').style.display = 'none';
-        
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => {
-            scrollArea.scrollTop = scrollArea.scrollHeight;
-        }, 50);
-    }
-
-    function showSummary() {
-        if (fahrten.length === 0) {
-            alert('Keine Fahrten zum Auswerten.');
-            return;
-        }
-        
-        const summaryDiv = document.getElementById('summary');
-        summaryDiv.innerHTML = `
-            <h3>📊 Schichtabrechnung</h3>
-            <pre style="white-space: pre-wrap; font-family: inherit; background: white; padding: 12px; border-radius: 8px; margin: 0;">${getSummaryText()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;">
-                <button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail senden</button>
-                <button id="closeSummary" style="background: #95a5a6;">Schließen</button>
-            </div>
-        `;
-        summaryDiv.style.display = 'block';
-        
-        document.getElementById('sendEmailFromSummary').addEventListener('click', function() {
-            if (sendEmail()) {
-                // Nach erfolgreichem Öffnen der Mail kann die Zusammenfassung bleiben
-            }
-        });
-        document.getElementById('closeSummary').addEventListener('click', function() {
-            summaryDiv.style.display = 'none';
-        });
-        
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => {
-            summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 50);
-    }
-    
-    function resetAll() {
-        if (confirm('Alle Fahrten wirklich löschen?')) {
-            fahrten = [];
-            updateListe();
-            document.getElementById('summary').style.display = 'none';
-            document.getElementById('formError').style.display = 'none';
-        }
-    }
-
-    document.getElementById('addBtn').addEventListener('click', addFahrt);
-    document.getElementById('summaryBtn').addEventListener('click', showSummary);
-    document.getElementById('resetBtn').addEventListener('click', resetAll);
-    document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('emailSettingsBtn').addEventListener('click', showEmailModal);
-    document.getElementById('saveEmailBtn').addEventListener('click', saveEmailSettings);
-    document.getElementById('closeEmailBtn').addEventListener('click', () => {
-        document.getElementById('emailModal').style.display = 'none';
-    });
-    
-    init();
-    updateListe();
-</script>
-
-</body>
-</html>
+        if (fehler

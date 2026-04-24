@@ -86,7 +86,18 @@
             height: 44px;
         }
         
-        .input-row select,
+        .input-row select {
+            flex: 1;
+            min-width: calc(50% - 6px);
+            padding: 9px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            height: 42px;
+        }
+        
+        /* Trinkgeld jetzt alleine in einer Zeile */
         .input-row input#trinkgeld {
             flex: 1;
             min-width: calc(50% - 6px);
@@ -361,7 +372,6 @@
             margin-left: 6px;
         }
         
-        /* PDF-spezifische Styles */
         .pdf-report {
             font-family: 'Helvetica', Arial, sans-serif;
             line-height: 1.4;
@@ -389,6 +399,17 @@
     <div class="form-group">
         <h3>📝 Neue Fahrt <span class="auto-save-badge">✓ gespeichert</span></h3>
         <div class="input-grid">
+            <!-- Fahrtart jetzt GANZ OBEN -->
+            <div class="input-row">
+                <select id="fahrtart" style="flex: 1;">
+                    <option value="bar">🚕 Bar</option>
+                    <option value="karte">💳 Kartenzahlung</option>
+                    <option value="rechnung">🧾 Rechnungsfahrt</option>
+                    <option value="kranken">🏥 Krankenfahrt</option>
+                </select>
+                <input type="number" id="trinkgeld" placeholder="Trinkgeld (€)" step="0.01" style="flex: 1;">
+            </div>
+            <!-- Dann Von / Nach -->
             <div class="input-row">
                 <div class="input-wrapper">
                     <textarea id="von" placeholder="Von *" rows="2"></textarea>
@@ -399,22 +420,15 @@
                     <div id="nach-autocomplete" class="autocomplete-list" style="display:none;"></div>
                 </div>
             </div>
+            <!-- Fahrgast / Kostenträger -->
             <div class="input-row">
                 <input type="text" id="fahrgast" placeholder="Fahrgast">
                 <input type="text" id="kostentraeger" placeholder="Kostenträger">
             </div>
+            <!-- Preis / Eigenanteil -->
             <div class="input-row">
                 <input type="number" id="preis" placeholder="Preis (€) *" step="0.01">
                 <input type="number" id="eigenanteil" placeholder="Eigenanteil (€)" step="0.01">
-            </div>
-            <div class="input-row">
-                <input type="number" id="trinkgeld" placeholder="Trinkgeld (€)" step="0.01">
-                <select id="fahrtart">
-                    <option value="bar">🚕 Bar</option>
-                    <option value="karte">💳 Kartenzahlung</option>
-                    <option value="rechnung">🧾 Rechnungsfahrt</option>
-                    <option value="kranken">🏥 Krankenfahrt</option>
-                </select>
             </div>
             <button class="add-btn" id="addBtn">➕ Fahrt speichern</button>
             <div id="formError" class="error-msg" style="display:none;"></div>
@@ -692,7 +706,6 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // ========== PDF-ERSTELLUNG (robust) ==========
     function getPDFHTML() {
         if (fahrten.length === 0) return '<div class="pdf-report"><p>Keine Fahrten erfasst.</p></div>';
         
@@ -807,7 +820,6 @@
         try {
             const htmlContent = getPDFHTML();
             
-            // Temporären Container erstellen
             const container = document.createElement('div');
             container.style.position = 'absolute';
             container.style.left = '-9999px';
@@ -817,7 +829,6 @@
             container.innerHTML = htmlContent;
             document.body.appendChild(container);
             
-            // Warten auf Rendering
             await new Promise(resolve => setTimeout(resolve, 100));
             
             const opt = {
@@ -838,7 +849,7 @@
             
         } catch (error) {
             console.error('PDF Fehler:', error);
-            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen: ' + error.message;
+            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen';
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 3000);

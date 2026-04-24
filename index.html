@@ -27,39 +27,39 @@
         .fixed-header {
             background: white;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 12px 16px;
+            padding: 10px 12px;
             border-bottom: 1px solid #ddd;
             flex-shrink: 0;
         }
         
         .form-group h3 {
-            margin: 0 0 12px 0;
-            font-size: 1.2rem;
+            margin: 0 0 8px 0;
+            font-size: 1.1rem;
         }
         
         .input-grid {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         
         .input-row {
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             position: relative;
         }
         
         .input-wrapper {
             flex: 1;
-            min-width: calc(50% - 8px);
+            min-width: calc(50% - 6px);
             position: relative;
         }
         
         .input-wrapper textarea {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 15px;
             border: 1px solid #ccc;
             border-radius: 8px;
             background: white;
@@ -68,34 +68,34 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             word-break: break-word;
-            line-height: 1.4;
-            min-height: 80px;
-            max-height: 120px;
+            line-height: 1.3;
+            min-height: 65px;
+            max-height: 100px;
             overflow-y: auto;
         }
         
         .input-row input[type="text"],
         .input-row input[type="number"] {
             flex: 1;
-            min-width: calc(50% - 8px);
-            padding: 12px;
-            font-size: 16px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            background: white;
-            height: 48px;
-        }
-        
-        .input-row select,
-        .input-row input#trinkgeld {
-            flex: 1;
-            min-width: calc(50% - 8px);
-            padding: 10px 12px;
+            min-width: calc(50% - 6px);
+            padding: 10px;
             font-size: 15px;
             border: 1px solid #ccc;
             border-radius: 8px;
             background: white;
             height: 44px;
+        }
+        
+        .input-row select,
+        .input-row input#trinkgeld {
+            flex: 1;
+            min-width: calc(50% - 6px);
+            padding: 9px 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background: white;
+            height: 42px;
         }
         
         .autocomplete-list {
@@ -107,14 +107,14 @@
             border: 1px solid #ccc;
             border-top: none;
             border-radius: 0 0 8px 8px;
-            max-height: 300px;
+            max-height: 250px;
             overflow-y: auto;
             z-index: 1000;
             box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
         
         .autocomplete-item {
-            padding: 10px;
+            padding: 8px 10px;
             cursor: pointer;
             border-bottom: 1px solid #eee;
             white-space: normal;
@@ -128,21 +128,21 @@
         
         .autocomplete-item strong {
             display: block;
-            font-size: 14px;
-            margin-bottom: 4px;
+            font-size: 13px;
+            margin-bottom: 3px;
         }
         
         .autocomplete-item small {
             display: block;
             color: #666;
-            font-size: 11px;
+            font-size: 10px;
             white-space: normal;
             word-wrap: break-word;
         }
         
         button {
-            padding: 12px 16px;
-            font-size: 16px;
+            padding: 10px 14px;
+            font-size: 15px;
             border: none;
             border-radius: 8px;
             cursor: pointer;
@@ -153,7 +153,7 @@
             background: #2c3e50;
             color: white;
             width: 100%;
-            margin-top: 8px;
+            margin-top: 6px;
         }
         
         .add-btn:active {
@@ -162,35 +162,29 @@
         
         .error-msg {
             color: #d32f2f;
-            font-size: 14px;
-            margin-top: 8px;
-            padding: 6px;
+            font-size: 12px;
+            margin-top: 6px;
+            padding: 4px;
             background: #ffebee;
             border-radius: 6px;
             text-align: center;
         }
         
-        .info-text {
-            font-size: 12px;
-            color: #666;
-            margin-top: 4px;
-        }
-        
         .status-bar {
             background: #e8f0fe;
-            padding: 6px 12px;
+            padding: 4px 8px;
             border-radius: 6px;
-            font-size: 12px;
-            margin-top: 8px;
+            font-size: 11px;
+            margin-top: 6px;
             text-align: center;
         }
         
         .progress-bar {
             width: 100%;
-            height: 4px;
+            height: 3px;
             background: #e0e0e0;
             border-radius: 2px;
-            margin-top: 8px;
+            margin-top: 6px;
             overflow: hidden;
             display: none;
         }
@@ -205,21 +199,21 @@
         .scroll-area {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 12px;
             min-height: 0;
         }
         
         .fahrten-container {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
         
         .fahrt {
             background: white;
-            padding: 12px;
-            border-radius: 10px;
-            border-left: 6px solid;
+            padding: 10px;
+            border-radius: 8px;
+            border-left: 5px solid;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         
@@ -230,16 +224,16 @@
         
         .fahrt-header {
             font-weight: bold;
-            font-size: 16px;
-            margin-bottom: 6px;
+            font-size: 14px;
+            margin-bottom: 5px;
             word-wrap: break-word;
             white-space: normal;
         }
         
         .fahrt-details {
-            font-size: 14px;
+            font-size: 12px;
             color: #555;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
             word-wrap: break-word;
             white-space: normal;
         }
@@ -247,10 +241,10 @@
         .delete-btn {
             background: #e67e22;
             color: white;
-            padding: 6px 12px;
-            font-size: 14px;
+            padding: 5px 10px;
+            font-size: 12px;
             border-radius: 6px;
-            margin-top: 6px;
+            margin-top: 5px;
         }
         
         .delete-btn:active {
@@ -260,37 +254,38 @@
         .empty-state {
             text-align: center;
             color: #999;
-            padding: 40px 20px;
+            padding: 30px 20px;
         }
         
         .summary-panel {
             background: #e9e9e9;
-            padding: 16px;
-            border-radius: 12px;
-            margin-top: 16px;
-            margin-bottom: 16px;
+            padding: 12px;
+            border-radius: 10px;
+            margin-top: 12px;
+            margin-bottom: 12px;
         }
         
         .summary-panel pre {
             white-space: pre-wrap;
             font-family: inherit;
             background: white;
-            padding: 12px;
+            padding: 10px;
             border-radius: 8px;
             margin: 0;
-            font-size: 13px;
-            max-height: 400px;
+            font-size: 11px;
+            max-height: 350px;
             overflow-y: auto;
         }
         
         .summary-panel h3 {
             margin-top: 0;
+            font-size: 1rem;
         }
         
         .action-bar {
             display: flex;
-            gap: 10px;
-            padding: 12px 16px;
+            gap: 8px;
+            padding: 8px 12px;
             background: white;
             border-top: 1px solid #ddd;
             flex-shrink: 0;
@@ -300,24 +295,32 @@
             background: #27ae60;
             color: white;
             flex: 1;
+            padding: 10px;
+            font-size: 14px;
         }
         
         .reset-btn {
             background: #c0392b;
             color: white;
             flex: 1;
+            padding: 10px;
+            font-size: 14px;
         }
         
         .refresh-btn {
             background: #3498db;
             color: white;
-            flex: 0.4;
+            flex: 0.3;
+            padding: 10px;
+            font-size: 12px;
         }
         
         .email-btn {
             background: #f39c12;
             color: white;
-            flex: 0.4;
+            flex: 0.3;
+            padding: 10px;
+            font-size: 12px;
         }
         
         .modal {
@@ -338,7 +341,7 @@
             border-radius: 12px;
             padding: 20px;
             width: 90%;
-            max-width: 400px;
+            max-width: 350px;
         }
         
         .modal-content h4 {
@@ -347,28 +350,22 @@
         
         .modal-content input {
             width: 100%;
-            padding: 12px;
-            font-size: 16px;
+            padding: 10px;
+            font-size: 15px;
             border: 1px solid #ccc;
             border-radius: 8px;
             margin: 10px 0;
         }
         
         .modal-content button {
-            margin-top: 10px;
+            margin-top: 8px;
             width: 100%;
         }
         
         .auto-save-badge {
-            font-size: 11px;
+            font-size: 10px;
             color: #27ae60;
-            margin-left: 8px;
-        }
-        
-        .tip-hint {
-            font-size: 11px;
-            color: #e67e22;
-            margin-top: 4px;
+            margin-left: 6px;
         }
     </style>
 </head>
@@ -376,21 +373,21 @@
 
 <div class="fixed-header">
     <div class="form-group">
-        <h3>📝 Neue Fahrt <span class="auto-save-badge">✓ automatisch gespeichert</span></h3>
+        <h3>📝 Neue Fahrt <span class="auto-save-badge">✓ gespeichert</span></h3>
         <div class="input-grid">
             <div class="input-row">
                 <div class="input-wrapper">
-                    <textarea id="von" placeholder="Von * (Straße, PLZ Ort)" rows="2"></textarea>
+                    <textarea id="von" placeholder="Von *" rows="2"></textarea>
                     <div id="von-autocomplete" class="autocomplete-list" style="display:none;"></div>
                 </div>
                 <div class="input-wrapper">
-                    <textarea id="nach" placeholder="Nach * (Straße, PLZ Ort)" rows="2"></textarea>
+                    <textarea id="nach" placeholder="Nach *" rows="2"></textarea>
                     <div id="nach-autocomplete" class="autocomplete-list" style="display:none;"></div>
                 </div>
             </div>
             <div class="input-row">
-                <input type="text" id="fahrgast" placeholder="Fahrgast (optional)">
-                <input type="text" id="kostentraeger" placeholder="Kostenträger (optional)">
+                <input type="text" id="fahrgast" placeholder="Fahrgast">
+                <input type="text" id="kostentraeger" placeholder="Kostenträger">
             </div>
             <div class="input-row">
                 <input type="number" id="preis" placeholder="Preis (€) *" step="0.01">
@@ -399,7 +396,7 @@
             <div class="input-row">
                 <input type="number" id="trinkgeld" placeholder="Trinkgeld (€)" step="0.01">
                 <select id="fahrtart">
-                    <option value="bar">🚕 Bar (Standard)</option>
+                    <option value="bar">🚕 Bar</option>
                     <option value="karte">💳 Kartenzahlung</option>
                     <option value="rechnung">🧾 Rechnungsfahrt</option>
                     <option value="kranken">🏥 Krankenfahrt</option>
@@ -407,10 +404,8 @@
             </div>
             <button class="add-btn" id="addBtn">➕ Fahrt speichern</button>
             <div id="formError" class="error-msg" style="display:none;"></div>
-            <div class="info-text" id="kostentraegerHint"></div>
             <div id="statusBar" class="status-bar">📡 Lade Adressliste...</div>
             <div id="progressBar" class="progress-bar"><div class="progress-fill"></div></div>
-            <div class="tip-hint">💡 Hinweis: Trinkgeld bei Kartenzahlung wird separat ausgewiesen (geht nicht in die Tasche)</div>
         </div>
     </div>
 </div>
@@ -423,16 +418,16 @@
 </div>
 
 <div class="action-bar">
-    <button class="refresh-btn" id="refreshBtn">🔄 Update</button>
-    <button class="email-btn" id="emailSettingsBtn">📧 E-Mail</button>
-    <button class="summary-btn" id="summaryBtn">📊 Schicht beenden</button>
-    <button class="reset-btn" id="resetBtn">🗑 Alle löschen</button>
+    <button class="refresh-btn" id="refreshBtn">🔄</button>
+    <button class="email-btn" id="emailSettingsBtn">📧</button>
+    <button class="summary-btn" id="summaryBtn">📊 Schicht</button>
+    <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
 
 <div id="emailModal" class="modal">
     <div class="modal-content">
         <h4>📧 E-Mail Einstellungen</h4>
-        <p>Empfänger-Adresse für die Schichtabrechnung:</p>
+        <p>Empfänger für Abrechnung:</p>
         <input type="email" id="emailRecipient" placeholder="empfaenger@example.com">
         <button id="saveEmailBtn">💾 Speichern</button>
         <button id="closeEmailBtn" style="background:#95a5a6;">Schließen</button>
@@ -573,7 +568,7 @@
     
     async function loadAdressenFromGitHub() {
         const statusBar = document.getElementById('statusBar');
-        statusBar.innerHTML = '📡 Lade Adressliste...';
+        statusBar.innerHTML = '📡 Lade...';
         statusBar.style.background = '#fff3cd';
         try {
             const response = await fetch(ADRESSEN_URL, { cache: 'no-cache' });
@@ -600,18 +595,18 @@
             adressListe = neueListe;
             if (db) await saveToIndexedDB(adressListe);
             localStorage.setItem('fahrtenbuch_adressen_count', adressListe.length);
-            statusBar.innerHTML = `✅ ${adressListe.length} Adressen geladen`;
+            statusBar.innerHTML = `✅ ${adressListe.length}`;
             statusBar.style.background = '#d4edda';
             setTimeout(() => {
                 statusBar.style.background = '#e8f0fe';
-                statusBar.innerHTML = `📋 ${adressListe.length} Adressen verfügbar`;
-            }, 3000);
+                statusBar.innerHTML = `📋 ${adressListe.length}`;
+            }, 2000);
         } catch (error) {
-            statusBar.innerHTML = `⚠️ Fehler: ${error.message}`;
+            statusBar.innerHTML = `⚠️ Fehler`;
             statusBar.style.background = '#f8d7da';
             const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
             if (savedCount) {
-                statusBar.innerHTML = `⚠️ Offline: ${savedCount} Adressen im Cache`;
+                statusBar.innerHTML = `📋 ${savedCount} (Offline)`;
             }
         }
     }
@@ -663,7 +658,7 @@
         });
         function adjustHeight() {
             finalTextarea.style.height = 'auto';
-            finalTextarea.style.height = Math.max(80, finalTextarea.scrollHeight) + 'px';
+            finalTextarea.style.height = Math.max(65, finalTextarea.scrollHeight) + 'px';
         }
         finalTextarea.addEventListener('input', adjustHeight);
         finalTextarea.id = inputId;
@@ -682,93 +677,77 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
-    // ========== AKTUALISIERTE ABRECHNUNG MIT TRINKGELD-DETAILS ==========
+    // ========== ABRECHNUNG - NUR KARTEN-TRINKGELD WIRD AUSGEWIESEN ==========
     function getSummaryText() {
         if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
         
         let totals = {
-            bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }
+            bar: { summe: 0, anzahl: 0, trinkgeld: 0 },
+            karte: { summe: 0, anzahl: 0, trinkgeld: 0 },
+            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0 },
+            kranken: { summe: 0, anzahl: 0, trinkgeld: 0 }
         };
         
-        let gesamtSumme = 0;
-        let gesamtTrinkgeldBar = 0;      // Trinkgeld Bar (geht in die Tasche)
-        let gesamtTrinkgeldKarte = 0;    // Trinkgeld Kartenzahlung (extra)
-        let gesamtEigenanteil = 0;
+        let gesamtEinnahme = 0;
+        let trinkgeldKartenzahlung = 0;
         
         fahrten.forEach(f => {
             const einnahme = f.preis + f.trinkgeld;
-            gesamtSumme += einnahme;
-            gesamtEigenanteil += f.eigenanteil;
+            gesamtEinnahme += einnahme;
             
             if (f.art === 'bar') {
                 totals.bar.summe += einnahme;
                 totals.bar.anzahl++;
                 totals.bar.trinkgeld += f.trinkgeld;
-                totals.bar.eigenanteil += f.eigenanteil;
-                gesamtTrinkgeldBar += f.trinkgeld;
             } else if (f.art === 'karte') {
                 totals.karte.summe += einnahme;
                 totals.karte.anzahl++;
                 totals.karte.trinkgeld += f.trinkgeld;
-                totals.karte.eigenanteil += f.eigenanteil;
-                gesamtTrinkgeldKarte += f.trinkgeld;
+                trinkgeldKartenzahlung += f.trinkgeld;
             } else if (f.art === 'rechnung') {
                 totals.rechnung.summe += einnahme;
                 totals.rechnung.anzahl++;
                 totals.rechnung.trinkgeld += f.trinkgeld;
-                totals.rechnung.eigenanteil += f.eigenanteil;
-                gesamtTrinkgeldBar += f.trinkgeld;  // Rechnung auch Bar-Trinkgeld?
             } else if (f.art === 'kranken') {
                 totals.kranken.summe += einnahme;
                 totals.kranken.anzahl++;
                 totals.kranken.trinkgeld += f.trinkgeld;
-                totals.kranken.eigenanteil += f.eigenanteil;
-                gesamtTrinkgeldBar += f.trinkgeld;
             }
         });
         
         const datum = new Date().toLocaleString('de-DE');
         
         let text = `📊 FAHRTENBUCH ABRECHNUNG - ${datum}\n`;
-        text += `══════════════════════════════════════════════════════════\n\n`;
-        text += `💰 GESAMTEINNAHME (inkl. Trinkgeld):  ${gesamtSumme.toFixed(2)} €\n`;
-        text += `🧾 Eigenanteil gesamt:               ${gesamtEigenanteil.toFixed(2)} €\n\n`;
-        text += `💵 TRINKGELD AUFTEILUNG:\n`;
-        text += `   🟢 Bar / Rechnung / Krankenfahrt:  ${gesamtTrinkgeldBar.toFixed(2)} € (geht in die Tasche)\n`;
-        text += `   🔵 Kartenzahlung:                  ${gesamtTrinkgeldKarte.toFixed(2)} € (extra ausgewiesen)\n\n`;
-        text += `📈 SUMME NACH FAHRTART:\n`;
-        text += `   🚕 Bar:         ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)\n`;
-        text += `   💳 Karte:       ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)\n`;
-        text += `   🧾 Rechnung:    ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)\n`;
-        text += `   🏥 Kranken:     ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)\n\n`;
-        text += `📋 DETAILLISTE ALLER FAHRTEN:\n`;
-        text += `──────────────────────────────────────────────────────────────\n`;
+        text += `════════════════════════════════════════════════\n\n`;
+        text += `💰 Gesamteinnahme:  ${gesamtEinnahme.toFixed(2)} €\n\n`;
+        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef):\n`;
+        text += `   → ${trinkgeldKartenzahlung.toFixed(2)} €\n\n`;
+        text += `📈 Übersicht:\n`;
+        text += `   🚕 Bar:      ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} €\n`;
+        text += `   💳 Karte:    ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} €\n`;
+        text += `   🧾 Rechnung: ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} €\n`;
+        text += `   🏥 Kranken:  ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} €\n\n`;
+        text += `📋 Alle Fahrten:\n`;
+        text += `────────────────────────────────────────────────\n`;
         
         fahrten.forEach((f, idx) => {
             let artSymbol = f.art === 'bar' ? '🚕' : f.art === 'karte' ? '💳' : f.art === 'rechnung' ? '🧾' : '🏥';
-            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
-            text += `${idx+1}. ${artSymbol} ${artName}: ${f.von} → ${f.nach}\n`;
-            text += `   Fahrgast: ${f.fahrgast || '-'} | Kostenträger: ${f.kostentraeger || '-'}\n`;
-            text += `   Preis: ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €\n`;
-            text += `   ────────────────────────────────────────────────────────────\n`;
+            text += `${idx+1}. ${artSymbol} ${f.von} → ${f.nach}\n`;
+            text += `   ${f.fahrgast || '-'} | ${f.kostentraeger || '-'} | ${f.preis}€ | TG: ${f.trinkgeld}€\n`;
         });
         
-        text += `\n══════════════════════════════════════════════════════════\n`;
-        text += `📋 Anzahl Fahrten insgesamt: ${fahrten.length}\n`;
-        text += `💵 In die Tasche (Bar-Trinkgeld): ${gesamtTrinkgeldBar.toFixed(2)} €\n`;
-        text += `💰 Trinkgeld Kartenzahlung (extra): ${gesamtTrinkgeldKarte.toFixed(2)} €\n`;
+        text += `\n════════════════════════════════════════════════\n`;
+        text += `📋 Fahrten total: ${fahrten.length}\n`;
+        text += `💳 Trinkgeld (Karte): ${trinkgeldKartenzahlung.toFixed(2)} €\n`;
         
         return text;
     }
     // =========================================================================
     
     function sendEmail() {
-        if (fahrten.length === 0) { alert('Keine Fahrten zum Versenden.'); return false; }
-        if (!emailRecipient) { alert('Bitte zuerst eine E-Mail-Adresse unter "📧 E-Mail" speichern.'); return false; }
-        const betreff = encodeURIComponent(`Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`);
+        if (fahrten.length === 0) { alert('Keine Fahrten.'); return false; }
+        if (!emailRecipient) { alert('E-Mail unter 📧 speichern.'); return false; }
+        const betreff = encodeURIComponent(`Fahrtenbuch - ${new Date().toLocaleDateString('de-DE')}`);
         const body = encodeURIComponent(getSummaryText());
         window.location.href = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
         return true;
@@ -782,29 +761,29 @@
             kostentraegerField.value = 'EC / CC';
             kostentraegerField.readOnly = true;
             kostentraegerField.style.background = '#f0f0f0';
-            kostentraegerHint.innerHTML = '💡 Kostenträger ist automatisch "EC / CC"';
+            if (kostentraegerHint) kostentraegerHint.innerHTML = '💡 EC / CC';
         } else {
             if (kostentraegerField.value === 'EC / CC') kostentraegerField.value = '';
             kostentraegerField.readOnly = false;
             kostentraegerField.style.background = 'white';
-            kostentraegerHint.innerHTML = '';
+            if (kostentraegerHint) kostentraegerHint.innerHTML = '';
         }
     });
 
     function updateListe() {
         const container = document.getElementById('fahrtenListe');
         if (fahrten.length === 0) {
-            container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten erfasst</div>';
+            container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten</div>';
             return;
         }
         container.innerHTML = '';
         fahrten.forEach((f, index) => {
-            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Kartenzahlung' : f.art === 'rechnung' ? 'Rechnungsfahrt' : 'Krankenfahrt';
+            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
             const div = document.createElement('div');
             div.className = `fahrt ${f.art}`;
             div.innerHTML = `<div class="fahrt-header">${escapeHtml(f.von)} → ${escapeHtml(f.nach)}</div>
-                <div class="fahrt-details">👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>💶 ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €<br>🏷️ ${artName}</div>
-                <button class="delete-btn" onclick="deleteFahrt(${index})">❌ Löschen</button>`;
+                <div class="fahrt-details">👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>💶 ${f.preis} € | TG: ${f.trinkgeld} € | ${artName}</div>
+                <button class="delete-btn" onclick="deleteFahrt(${index})">❌</button>`;
             container.appendChild(div);
         });
     }
@@ -838,20 +817,20 @@
         let fehler = '';
         const errorDiv = document.getElementById('formError');
         if (art === 'bar') {
-            if (!von) fehler += 'Von ist Pflicht. ';
-            if (!nach) fehler += 'Nach ist Pflicht. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
         } else if (art === 'karte') {
-            if (!von) fehler += 'Von ist Pflicht. ';
-            if (!nach) fehler += 'Nach ist Pflicht. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
             kostentraeger = 'EC / CC';
         } else if (art === 'rechnung' || art === 'kranken') {
-            if (!von) fehler += 'Von ist Pflicht. ';
-            if (!nach) fehler += 'Nach ist Pflicht. ';
-            if (!fahrgast) fehler += 'Fahrgast ist Pflicht. ';
-            if (!kostentraeger) fehler += 'Kostenträger ist Pflicht. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (!fahrgast) fehler += 'Fahrgast fehlt. ';
+            if (!kostentraeger) fehler += 'Kostenträger fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
         }
         if (fehler) {
             errorDiv.style.display = 'block';
@@ -872,7 +851,7 @@
         document.getElementById('fahrtart').value = 'bar';
         kostentraegerField.readOnly = false;
         kostentraegerField.style.background = 'white';
-        kostentraegerHint.innerHTML = '';
+        if (kostentraegerHint) kostentraegerHint.innerHTML = '';
         
         saveAndUpdate();
         document.getElementById('summary').style.display = 'none';
@@ -881,10 +860,10 @@
     }
 
     function showSummary() {
-        if (fahrten.length === 0) { alert('Keine Fahrten zum Auswerten.'); return; }
+        if (fahrten.length === 0) { alert('Keine Fahrten.'); return; }
         const summaryDiv = document.getElementById('summary');
-        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail senden</button>
+        summaryDiv.innerHTML = `<h3>📊 Schicht</h3><pre>${getSummaryText()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Senden</button>
             <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
         summaryDiv.style.display = 'block';
         document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());
@@ -894,7 +873,7 @@
     }
     
     function resetAll() {
-        if (confirm('Alle Fahrten wirklich löschen?')) {
+        if (confirm('Alle Fahrten löschen?')) {
             fahrten = [];
             saveAndUpdate();
             document.getElementById('summary').style.display = 'none';

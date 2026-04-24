@@ -272,9 +272,10 @@
             padding: 10px;
             border-radius: 8px;
             margin: 0;
-            font-size: 11px;
-            max-height: 350px;
+            font-size: 12px;
+            max-height: 400px;
             overflow-y: auto;
+            line-height: 1.4;
         }
         
         .summary-panel h3 {
@@ -677,68 +678,85 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
-    // ========== ABRECHNUNG - NUR KARTEN-TRINKGELD WIRD AUSGEWIESEN ==========
+    // ========== ABRECHNUNG MIT GRUPPEN ==========
     function getSummaryText() {
         if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
         
-        let totals = {
-            bar: { summe: 0, anzahl: 0, trinkgeld: 0 },
-            karte: { summe: 0, anzahl: 0, trinkgeld: 0 },
-            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0 },
-            kranken: { summe: 0, anzahl: 0, trinkgeld: 0 }
+        // Gruppen für jede Fahrtart
+        let gruppen = {
+            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
         };
         
         let gesamtEinnahme = 0;
-        let trinkgeldKartenzahlung = 0;
         
         fahrten.forEach(f => {
             const einnahme = f.preis + f.trinkgeld;
             gesamtEinnahme += einnahme;
             
             if (f.art === 'bar') {
-                totals.bar.summe += einnahme;
-                totals.bar.anzahl++;
-                totals.bar.trinkgeld += f.trinkgeld;
-            } else if (f.art === 'karte') {
-                totals.karte.summe += einnahme;
-                totals.karte.anzahl++;
-                totals.karte.trinkgeld += f.trinkgeld;
-                trinkgeldKartenzahlung += f.trinkgeld;
+                gruppen.bar.fahrten.push(f);
+                gruppen.bar.summe += einnahme;
+                gruppen.bar.trinkgeld += f.trinkgeld;
+                gruppen.bar.anzahl++;
             } else if (f.art === 'rechnung') {
-                totals.rechnung.summe += einnahme;
-                totals.rechnung.anzahl++;
-                totals.rechnung.trinkgeld += f.trinkgeld;
+                gruppen.rechnung.fahrten.push(f);
+                gruppen.rechnung.summe += einnahme;
+                gruppen.rechnung.trinkgeld += f.trinkgeld;
+                gruppen.rechnung.anzahl++;
             } else if (f.art === 'kranken') {
-                totals.kranken.summe += einnahme;
-                totals.kranken.anzahl++;
-                totals.kranken.trinkgeld += f.trinkgeld;
+                gruppen.kranken.fahrten.push(f);
+                gruppen.kranken.summe += einnahme;
+                gruppen.kranken.trinkgeld += f.trinkgeld;
+                gruppen.kranken.anzahl++;
+            } else if (f.art === 'karte') {
+                gruppen.karte.fahrten.push(f);
+                gruppen.karte.summe += einnahme;
+                gruppen.karte.trinkgeld += f.trinkgeld;
+                gruppen.karte.anzahl++;
             }
         });
         
         const datum = new Date().toLocaleString('de-DE');
+        let text = "";
         
-        let text = `📊 FAHRTENBUCH ABRECHNUNG - ${datum}\n`;
-        text += `════════════════════════════════════════════════\n\n`;
-        text += `💰 Gesamteinnahme:  ${gesamtEinnahme.toFixed(2)} €\n\n`;
-        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef):\n`;
-        text += `   → ${trinkgeldKartenzahlung.toFixed(2)} €\n\n`;
-        text += `📈 Übersicht:\n`;
-        text += `   🚕 Bar:      ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} €\n`;
-        text += `   💳 Karte:    ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} €\n`;
-        text += `   🧾 Rechnung: ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} €\n`;
-        text += `   🏥 Kranken:  ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} €\n\n`;
-        text += `📋 Alle Fahrten:\n`;
-        text += `────────────────────────────────────────────────\n`;
+        text += "═".repeat(50) + "\n";
+        text += `        📊 FAHRTENBUCH ABRECHNUNG\n`;
+        text += `             ${datum}\n`;
+        text += "═".repeat(50) + "\n\n";
         
-        fahrten.forEach((f, idx) => {
-            let artSymbol = f.art === 'bar' ? '🚕' : f.art === 'karte' ? '💳' : f.art === 'rechnung' ? '🧾' : '🏥';
-            text += `${idx+1}. ${artSymbol} ${f.von} → ${f.nach}\n`;
-            text += `   ${f.fahrgast || '-'} | ${f.kostentraeger || '-'} | ${f.preis}€ | TG: ${f.trinkgeld}€\n`;
-        });
+        text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
+        text += "─".repeat(50) + "\n\n";
         
-        text += `\n════════════════════════════════════════════════\n`;
-        text += `📋 Fahrten total: ${fahrten.length}\n`;
-        text += `💳 Trinkgeld (Karte): ${trinkgeldKartenzahlung.toFixed(2)} €\n`;
+        // Gruppen einzeln ausgeben
+        const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
+        for (let key of reihenfolge) {
+            const g = gruppen[key];
+            if (g.anzahl === 0) continue;
+            
+            text += `${g.name} (${g.anzahl} Fahrten)\n`;
+            text += "${' ' + '='.repeat(40)}\n";
+            
+            g.fahrten.forEach((f, idx) => {
+                const kurzVon = f.von.length > 25 ? f.von.substring(0, 22) + "..." : f.von;
+                const kurzNach = f.nach.length > 25 ? f.nach.substring(0, 22) + "..." : f.nach;
+                text += `${idx+1}. ${kurzVon} → ${kurzNach}\n`;
+                text += `   ${f.preis}€ | TG: ${f.trinkgeld}€ | ${f.fahrgast || '-'} | ${f.kostentraeger || '-'}\n`;
+            });
+            
+            text += `\n   📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)\n`;
+            text += "\n" + "─".repeat(40) + "\n\n";
+        }
+        
+        // Trinkgeld aus Kartenzahlung (für Chef)
+        const kartenTrinkgeld = gruppen.karte.trinkgeld;
+        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):\n`;
+        text += `   → ${kartenTrinkgeld.toFixed(2)} €\n\n`;
+        
+        text += "═".repeat(50) + "\n";
+        text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
         
         return text;
     }
@@ -862,8 +880,8 @@
     function showSummary() {
         if (fahrten.length === 0) { alert('Keine Fahrten.'); return; }
         const summaryDiv = document.getElementById('summary');
-        summaryDiv.innerHTML = `<h3>📊 Schicht</h3><pre>${getSummaryText()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Senden</button>
+        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail</button>
             <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
         summaryDiv.style.display = 'block';
         document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());

@@ -97,7 +97,6 @@
             height: 42px;
         }
         
-        /* Trinkgeld jetzt alleine in einer Zeile */
         .input-row input#trinkgeld {
             flex: 1;
             min-width: calc(50% - 6px);
@@ -335,63 +334,54 @@
             font-size: 12px;
         }
         
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 2000;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .modal-content {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-        }
-        
-        .modal-content h4 {
-            margin-top: 0;
-        }
-        
-        .modal-content button {
-            margin-top: 8px;
-            width: 100%;
-        }
-        
         .auto-save-badge {
             font-size: 10px;
             color: #27ae60;
             margin-left: 6px;
         }
         
-        .pdf-report {
-            font-family: 'Helvetica', Arial, sans-serif;
+        /* Druck-Styles für PDF */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .print-report, .print-report * {
+                visibility: visible;
+            }
+            .print-report {
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 100%;
+                padding: 20px;
+                font-family: Arial, Helvetica, sans-serif;
+            }
+            .no-print {
+                display: none;
+            }
+            button {
+                display: none;
+            }
+        }
+        
+        .print-report {
+            font-family: Arial, Helvetica, sans-serif;
             line-height: 1.4;
             padding: 20px;
-            background: white;
         }
-        .pdf-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
-        .pdf-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
-        .pdf-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
-        .pdf-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
-        .pdf-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
-        .pdf-report .fahrten-tabelle { width: 100%; border-collapse: collapse; font-size: 10px; }
-        .pdf-report .fahrten-tabelle th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
-        .pdf-report .fahrten-tabelle td { padding: 5px 6px; border-bottom: 1px solid #eee; }
-        .pdf-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
-        .pdf-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
-        .pdf-report hr { margin: 20px 0; }
-        .pdf-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
+        .print-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
+        .print-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
+        .print-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
+        .print-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
+        .print-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
+        .print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .print-report th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
+        .print-report td { padding: 5px 6px; border-bottom: 1px solid #eee; }
+        .print-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
+        .print-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
+        .print-report hr { margin: 20px 0; }
+        .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -399,7 +389,6 @@
     <div class="form-group">
         <h3>📝 Neue Fahrt <span class="auto-save-badge">✓ gespeichert</span></h3>
         <div class="input-grid">
-            <!-- Fahrtart jetzt GANZ OBEN -->
             <div class="input-row">
                 <select id="fahrtart" style="flex: 1;">
                     <option value="bar">🚕 Bar</option>
@@ -409,7 +398,6 @@
                 </select>
                 <input type="number" id="trinkgeld" placeholder="Trinkgeld (€)" step="0.01" style="flex: 1;">
             </div>
-            <!-- Dann Von / Nach -->
             <div class="input-row">
                 <div class="input-wrapper">
                     <textarea id="von" placeholder="Von *" rows="2"></textarea>
@@ -420,12 +408,10 @@
                     <div id="nach-autocomplete" class="autocomplete-list" style="display:none;"></div>
                 </div>
             </div>
-            <!-- Fahrgast / Kostenträger -->
             <div class="input-row">
                 <input type="text" id="fahrgast" placeholder="Fahrgast">
                 <input type="text" id="kostentraeger" placeholder="Kostenträger">
             </div>
-            <!-- Preis / Eigenanteil -->
             <div class="input-row">
                 <input type="number" id="preis" placeholder="Preis (€) *" step="0.01">
                 <input type="number" id="eigenanteil" placeholder="Eigenanteil (€)" step="0.01">
@@ -452,13 +438,8 @@
     <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
 
-<div id="pdfModal" class="modal">
-    <div class="modal-content">
-        <h4>📄 PDF wird erstellt...</h4>
-        <div id="pdfStatus">Bitte warten...</div>
-        <button id="closePdfModalBtn">Schließen</button>
-    </div>
-</div>
+<!-- Versteckter Container für den Druck/PDF -->
+<div id="printContainer" style="display: none;"></div>
 
 <script>
     let fahrten = [];
@@ -706,8 +687,9 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    function getPDFHTML() {
-        if (fahrten.length === 0) return '<div class="pdf-report"><p>Keine Fahrten erfasst.</p></div>';
+    // ========== PDF über Druckdialog (zuverlässig!) ==========
+    function getPrintHTML() {
+        if (fahrten.length === 0) return '<div class="print-report"><p>Keine Fahrten erfasst.</p></div>';
         
         let gruppen = {
             bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#4caf50" },
@@ -746,7 +728,7 @@
         });
         
         const datum = new Date().toLocaleString('de-DE');
-        let html = `<div class="pdf-report">
+        let html = `<div class="print-report">
             <h1>📊 FAHRTENBUCH ABRECHNUNG</h1>
             <div class="date">${datum}</div>
             <div class="total">💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €</div>`;
@@ -759,7 +741,7 @@
             html += `
                 <div class="gruppe">
                     <div class="gruppen-titel" style="border-left-color: ${g.farbe};">${g.name} (${g.anzahl} Fahrten)</div>
-                    <table class="fahrten-tabelle">
+                    <table>
                         <thead>
                             <tr><th>#</th><th>Von</th><th>Nach</th><th>Fahrgast</th><th>Kostenträger</th><th>Preis</th><th>TG</th></tr>
                         </thead>
@@ -767,8 +749,8 @@
             `;
             
             g.fahrten.forEach((f, idx) => {
-                let vonShort = f.von.length > 25 ? f.von.substring(0, 22) + '...' : f.von;
-                let nachShort = f.nach.length > 25 ? f.nach.substring(0, 22) + '...' : f.nach;
+                let vonShort = f.von.length > 30 ? f.von.substring(0, 27) + '...' : f.von;
+                let nachShort = f.nach.length > 30 ? f.nach.substring(0, 27) + '...' : f.nach;
                 html += `
                     <tr>
                         <td>${idx+1}</td>
@@ -806,54 +788,61 @@
         return html;
     }
     
-    async function generatePDF() {
+    function printToPDF() {
         if (fahrten.length === 0) {
             alert('Keine Fahrten zum Exportieren.');
             return;
         }
         
-        const modal = document.getElementById('pdfModal');
-        const pdfStatus = document.getElementById('pdfStatus');
-        modal.style.display = 'flex';
-        pdfStatus.innerHTML = 'Erstelle PDF, bitte warten...';
-        
-        try {
-            const htmlContent = getPDFHTML();
-            
-            const container = document.createElement('div');
-            container.style.position = 'absolute';
-            container.style.left = '-9999px';
-            container.style.top = '-9999px';
-            container.style.width = '800px';
-            container.style.backgroundColor = 'white';
-            container.innerHTML = htmlContent;
-            document.body.appendChild(container);
-            
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            const opt = {
-                margin: [0.5, 0.5, 0.5, 0.5],
-                filename: `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: false, letterRendering: true, logging: false },
-                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-            };
-            
-            await html2pdf().set(opt).from(container).save();
-            
-            document.body.removeChild(container);
-            pdfStatus.innerHTML = '✅ PDF wurde gespeichert!';
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 2000);
-            
-        } catch (error) {
-            console.error('PDF Fehler:', error);
-            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen';
-            setTimeout(() => {
-                modal.style.display = 'none';
-            }, 3000);
-        }
+        const printHTML = getPrintHTML();
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Fahrtenbuch Abrechnung</title>
+                <style>
+                    body {
+                        font-family: Arial, Helvetica, sans-serif;
+                        margin: 0;
+                        padding: 20px;
+                    }
+                    .print-report {
+                        max-width: 100%;
+                    }
+                    .print-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
+                    .print-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
+                    .print-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
+                    .print-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
+                    .print-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
+                    .print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
+                    .print-report th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
+                    .print-report td { padding: 5px 6px; border-bottom: 1px solid #eee; }
+                    .print-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
+                    .print-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
+                    .print-report hr { margin: 20px 0; }
+                    .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
+                    @media print {
+                        body {
+                            margin: 0;
+                            padding: 0;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                ${printHTML}
+                <script>
+                    window.onload = function() {
+                        window.print();
+                        setTimeout(function() { window.close(); }, 1000);
+                    };
+                <\/script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
     
     function getPlainTextSummary() {
@@ -1058,10 +1047,7 @@
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('pdfBtn').addEventListener('click', generatePDF);
-    document.getElementById('closePdfModalBtn').addEventListener('click', () => {
-        document.getElementById('pdfModal').style.display = 'none';
-    });
+    document.getElementById('pdfBtn').addEventListener('click', printToPDF);
     
     init();
 </script>

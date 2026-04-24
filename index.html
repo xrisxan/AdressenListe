@@ -343,6 +343,7 @@
             padding: 20px;
             width: 90%;
             max-width: 350px;
+            text-align: center;
         }
         
         .modal-content h4 {
@@ -359,9 +360,28 @@
             color: #27ae60;
             margin-left: 6px;
         }
+        
+        /* PDF-spezifische Styles */
+        .pdf-report {
+            font-family: 'Helvetica', Arial, sans-serif;
+            line-height: 1.4;
+            padding: 20px;
+            background: white;
+        }
+        .pdf-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
+        .pdf-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
+        .pdf-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
+        .pdf-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
+        .pdf-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
+        .pdf-report .fahrten-tabelle { width: 100%; border-collapse: collapse; font-size: 10px; }
+        .pdf-report .fahrten-tabelle th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
+        .pdf-report .fahrten-tabelle td { padding: 5px 6px; border-bottom: 1px solid #eee; }
+        .pdf-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
+        .pdf-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
+        .pdf-report hr { margin: 20px 0; }
+        .pdf-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
     </style>
-    <!-- PDF Bibliothek -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -421,7 +441,7 @@
 <div id="pdfModal" class="modal">
     <div class="modal-content">
         <h4>📄 PDF wird erstellt...</h4>
-        <p id="pdfStatus">Bitte warten...</p>
+        <div id="pdfStatus">Bitte warten...</div>
         <button id="closePdfModalBtn">Schließen</button>
     </div>
 </div>
@@ -629,7 +649,7 @@
                 matches.slice(0, 15).forEach(adr => {
                     const div = document.createElement('div');
                     div.className = 'autocomplete-item';
-                    div.innerHTML = `<strong>${adr.strasse}</strong><small>${adr.plz} ${adr.ort}${adr.ortsteil ? ' (' + adr.ortsteil + ')' : ''}</small>`;
+                    div.innerHTML = `<strong>${escapeHtmlSimple(adr.strasse)}</strong><small>${adr.plz} ${adr.ort}${adr.ortsteil ? ' (' + adr.ortsteil + ')' : ''}</small>`;
                     div.addEventListener('click', function() {
                         finalTextarea.value = formatAdresseForDisplay(adr);
                         finalList.style.display = 'none';
@@ -667,9 +687,14 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
-    // ========== ABRECHNUNG MIT GRUPPEN (als HTML für PDF) ==========
-    function getSummaryHTML() {
-        if (fahrten.length === 0) return '<p>Keine Fahrten erfasst.</p>';
+    function escapeHtmlSimple(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+    
+    // ========== PDF-ERSTELLUNG (robust) ==========
+    function getPDFHTML() {
+        if (fahrten.length === 0) return '<div class="pdf-report"><p>Keine Fahrten erfasst.</p></div>';
         
         let gruppen = {
             bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#4caf50" },
@@ -708,38 +733,10 @@
         });
         
         const datum = new Date().toLocaleString('de-DE');
-        let html = `
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Fahrtenbuch Abrechnung ${new Date().toLocaleDateString('de-DE')}</title>
-                <style>
-                    body {
-                        font-family: 'Helvetica', Arial, sans-serif;
-                        margin: 20px;
-                        line-height: 1.4;
-                    }
-                    h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
-            .date { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
-            .total { font-size: 16px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
-            .gruppe { margin: 20px 0; page-break-inside: avoid; }
-            .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
-            .fahrten-tabelle { width: 100%; border-collapse: collapse; font-size: 11px; }
-            .fahrten-tabelle th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
-            .fahrten-tabelle td { padding: 6px 8px; border-bottom: 1px solid #eee; }
-            .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 12px; }
-            .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
-            hr { margin: 20px 0; }
-            .footer { font-size: 10px; color: #999; text-align: center; margin-top: 30px; }
-                </style>
-            </head>
-            <body>
-                <h1>📊 FAHRTENBUCH ABRECHNUNG</h1>
-                <div class="date">${datum}</div>
-                
-                <div class="total">💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €</div>
-        `;
+        let html = `<div class="pdf-report">
+            <h1>📊 FAHRTENBUCH ABRECHNUNG</h1>
+            <div class="date">${datum}</div>
+            <div class="total">💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €</div>`;
         
         const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
         for (let key of reihenfolge) {
@@ -757,13 +754,15 @@
             `;
             
             g.fahrten.forEach((f, idx) => {
+                let vonShort = f.von.length > 25 ? f.von.substring(0, 22) + '...' : f.von;
+                let nachShort = f.nach.length > 25 ? f.nach.substring(0, 22) + '...' : f.nach;
                 html += `
                     <tr>
                         <td>${idx+1}</td>
-                        <td>${escapeHtml(f.von.substring(0, 30))}${f.von.length > 30 ? '...' : ''}</td>
-                        <td>${escapeHtml(f.nach.substring(0, 30))}${f.nach.length > 30 ? '...' : ''}</td>
-                        <td>${escapeHtml(f.fahrgast || '-')}</td>
-                        <td>${escapeHtml(f.kostentraeger || '-')}</td>
+                        <td>${escapeHtmlSimple(vonShort)}</td>
+                        <td>${escapeHtmlSimple(nachShort)}</td>
+                        <td>${escapeHtmlSimple(f.fahrgast || '-')}</td>
+                        <td>${escapeHtmlSimple(f.kostentraeger || '-')}</td>
                         <td style="text-align:right">${f.preis.toFixed(2)} €</td>
                         <td style="text-align:right">${f.trinkgeld.toFixed(2)} €</td>
                     </tr>
@@ -788,16 +787,10 @@
                 <div class="footer">
                     📋 Gesamt: ${fahrten.length} Fahrten | Erstellt mit Digitalem Fahrtenbuch
                 </div>
-            </body>
-            </html>
+            </div>
         `;
         
         return html;
-    }
-    
-    function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
     async function generatePDF() {
@@ -809,32 +802,35 @@
         const modal = document.getElementById('pdfModal');
         const pdfStatus = document.getElementById('pdfStatus');
         modal.style.display = 'flex';
-        pdfStatus.innerHTML = 'Erstelle PDF...';
+        pdfStatus.innerHTML = 'Erstelle PDF, bitte warten...';
         
         try {
-            const html = getSummaryHTML();
+            const htmlContent = getPDFHTML();
             
-            // Temporäres Element für PDF-Erstellung
-            const element = document.createElement('div');
-            element.innerHTML = html;
-            element.style.position = 'absolute';
-            element.style.left = '-9999px';
-            element.style.top = '-9999px';
-            document.body.appendChild(element);
+            // Temporären Container erstellen
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            container.style.width = '800px';
+            container.style.backgroundColor = 'white';
+            container.innerHTML = htmlContent;
+            document.body.appendChild(container);
+            
+            // Warten auf Rendering
+            await new Promise(resolve => setTimeout(resolve, 100));
             
             const opt = {
                 margin: [0.5, 0.5, 0.5, 0.5],
                 filename: `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2, useCORS: false, letterRendering: true },
+                html2canvas: { scale: 2, useCORS: false, letterRendering: true, logging: false },
                 jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
             };
             
-            pdfStatus.innerHTML = 'Generiere PDF, bitte warten...';
+            await html2pdf().set(opt).from(container).save();
             
-            await html2pdf().set(opt).from(element).save();
-            
-            document.body.removeChild(element);
+            document.body.removeChild(container);
             pdfStatus.innerHTML = '✅ PDF wurde gespeichert!';
             setTimeout(() => {
                 modal.style.display = 'none';
@@ -842,131 +838,11 @@
             
         } catch (error) {
             console.error('PDF Fehler:', error);
-            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen';
+            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen: ' + error.message;
             setTimeout(() => {
                 modal.style.display = 'none';
             }, 3000);
         }
-    }
-    
-    const fahrtartSelect = document.getElementById('fahrtart');
-    const kostentraegerField = document.getElementById('kostentraeger');
-    const kostentraegerHint = document.getElementById('kostentraegerHint');
-    fahrtartSelect.addEventListener('change', function() {
-        if (this.value === 'karte') {
-            kostentraegerField.value = 'EC / CC';
-            kostentraegerField.readOnly = true;
-            kostentraegerField.style.background = '#f0f0f0';
-            if (kostentraegerHint) kostentraegerHint.innerHTML = '💡 EC / CC';
-        } else {
-            if (kostentraegerField.value === 'EC / CC') kostentraegerField.value = '';
-            kostentraegerField.readOnly = false;
-            kostentraegerField.style.background = 'white';
-            if (kostentraegerHint) kostentraegerHint.innerHTML = '';
-        }
-    });
-
-    function updateListe() {
-        const container = document.getElementById('fahrtenListe');
-        if (fahrten.length === 0) {
-            container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten</div>';
-            return;
-        }
-        container.innerHTML = '';
-        fahrten.forEach((f, index) => {
-            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
-            const div = document.createElement('div');
-            div.className = `fahrt ${f.art}`;
-            div.innerHTML = `<div class="fahrt-header">${escapeHtmlSimple(f.von)} → ${escapeHtmlSimple(f.nach)}</div>
-                <div class="fahrt-details">👤 ${escapeHtmlSimple(f.fahrgast || '-')} | 🏢 ${escapeHtmlSimple(f.kostentraeger || '-')}<br>💶 ${f.preis} € | TG: ${f.trinkgeld} € | ${artName}</div>
-                <button class="delete-btn" onclick="deleteFahrt(${index})">❌</button>`;
-            container.appendChild(div);
-        });
-    }
-    
-    function escapeHtmlSimple(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-    }
-
-    function deleteFahrt(index) {
-        fahrten.splice(index, 1);
-        saveAndUpdate();
-        document.getElementById('summary').style.display = 'none';
-    }
-
-    function addFahrt() {
-        let von = document.getElementById('von').value.trim();
-        let nach = document.getElementById('nach').value.trim();
-        let fahrgast = document.getElementById('fahrgast').value.trim();
-        let kostentraeger = document.getElementById('kostentraeger').value.trim();
-        let preis = parseFloat(document.getElementById('preis').value);
-        let eigenanteil = parseFloat(document.getElementById('eigenanteil').value);
-        let trinkgeld = parseFloat(document.getElementById('trinkgeld').value);
-        const art = document.getElementById('fahrtart').value;
-
-        von = von.replace(/\n/g, ', ');
-        nach = nach.replace(/\n/g, ', ');
-        if (isNaN(eigenanteil)) eigenanteil = 0;
-        if (isNaN(trinkgeld)) trinkgeld = 0;
-        
-        let fehler = '';
-        const errorDiv = document.getElementById('formError');
-        if (art === 'bar') {
-            if (!von) fehler += 'Von fehlt. ';
-            if (!nach) fehler += 'Nach fehlt. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
-        } else if (art === 'karte') {
-            if (!von) fehler += 'Von fehlt. ';
-            if (!nach) fehler += 'Nach fehlt. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
-            kostentraeger = 'EC / CC';
-        } else if (art === 'rechnung' || art === 'kranken') {
-            if (!von) fehler += 'Von fehlt. ';
-            if (!nach) fehler += 'Nach fehlt. ';
-            if (!fahrgast) fehler += 'Fahrgast fehlt. ';
-            if (!kostentraeger) fehler += 'Kostenträger fehlt. ';
-            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
-        }
-        if (fehler) {
-            errorDiv.style.display = 'block';
-            errorDiv.innerHTML = '❌ ' + fehler;
-            return;
-        }
-        errorDiv.style.display = 'none';
-        
-        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil, trinkgeld, art });
-        
-        document.getElementById('von').value = '';
-        document.getElementById('nach').value = '';
-        document.getElementById('fahrgast').value = '';
-        document.getElementById('kostentraeger').value = '';
-        document.getElementById('preis').value = '';
-        document.getElementById('eigenanteil').value = '';
-        document.getElementById('trinkgeld').value = '';
-        document.getElementById('fahrtart').value = 'bar';
-        kostentraegerField.readOnly = false;
-        kostentraegerField.style.background = 'white';
-        if (kostentraegerHint) kostentraegerHint.innerHTML = '';
-        
-        saveAndUpdate();
-        document.getElementById('summary').style.display = 'none';
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 50);
-    }
-
-    function showSummary() {
-        if (fahrten.length === 0) { alert('Keine Fahrten.'); return; }
-        const summaryDiv = document.getElementById('summary');
-        // Nur-Text-Version für die Anzeige (ohne HTML)
-        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getPlainTextSummary()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;">
-                <button id="closeSummary" style="background: #95a5a6;">Schließen</button>
-            </div>`;
-        summaryDiv.style.display = 'block';
-        document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
-        const scrollArea = document.getElementById('scrollArea');
-        setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
     
     function getPlainTextSummary() {
@@ -1042,6 +918,120 @@
         text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
         
         return text;
+    }
+    
+    const fahrtartSelect = document.getElementById('fahrtart');
+    const kostentraegerField = document.getElementById('kostentraeger');
+    const kostentraegerHint = document.getElementById('kostentraegerHint');
+    fahrtartSelect.addEventListener('change', function() {
+        if (this.value === 'karte') {
+            kostentraegerField.value = 'EC / CC';
+            kostentraegerField.readOnly = true;
+            kostentraegerField.style.background = '#f0f0f0';
+            if (kostentraegerHint) kostentraegerHint.innerHTML = '💡 EC / CC';
+        } else {
+            if (kostentraegerField.value === 'EC / CC') kostentraegerField.value = '';
+            kostentraegerField.readOnly = false;
+            kostentraegerField.style.background = 'white';
+            if (kostentraegerHint) kostentraegerHint.innerHTML = '';
+        }
+    });
+
+    function updateListe() {
+        const container = document.getElementById('fahrtenListe');
+        if (fahrten.length === 0) {
+            container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten</div>';
+            return;
+        }
+        container.innerHTML = '';
+        fahrten.forEach((f, index) => {
+            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
+            const div = document.createElement('div');
+            div.className = `fahrt ${f.art}`;
+            div.innerHTML = `<div class="fahrt-header">${escapeHtmlSimple(f.von)} → ${escapeHtmlSimple(f.nach)}</div>
+                <div class="fahrt-details">👤 ${escapeHtmlSimple(f.fahrgast || '-')} | 🏢 ${escapeHtmlSimple(f.kostentraeger || '-')}<br>💶 ${f.preis} € | TG: ${f.trinkgeld} € | ${artName}</div>
+                <button class="delete-btn" onclick="deleteFahrt(${index})">❌</button>`;
+            container.appendChild(div);
+        });
+    }
+
+    function deleteFahrt(index) {
+        fahrten.splice(index, 1);
+        saveAndUpdate();
+        document.getElementById('summary').style.display = 'none';
+    }
+
+    function addFahrt() {
+        let von = document.getElementById('von').value.trim();
+        let nach = document.getElementById('nach').value.trim();
+        let fahrgast = document.getElementById('fahrgast').value.trim();
+        let kostentraeger = document.getElementById('kostentraeger').value.trim();
+        let preis = parseFloat(document.getElementById('preis').value);
+        let eigenanteil = parseFloat(document.getElementById('eigenanteil').value);
+        let trinkgeld = parseFloat(document.getElementById('trinkgeld').value);
+        const art = document.getElementById('fahrtart').value;
+
+        von = von.replace(/\n/g, ', ');
+        nach = nach.replace(/\n/g, ', ');
+        if (isNaN(eigenanteil)) eigenanteil = 0;
+        if (isNaN(trinkgeld)) trinkgeld = 0;
+        
+        let fehler = '';
+        const errorDiv = document.getElementById('formError');
+        if (art === 'bar') {
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
+        } else if (art === 'karte') {
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
+            kostentraeger = 'EC / CC';
+        } else if (art === 'rechnung' || art === 'kranken') {
+            if (!von) fehler += 'Von fehlt. ';
+            if (!nach) fehler += 'Nach fehlt. ';
+            if (!fahrgast) fehler += 'Fahrgast fehlt. ';
+            if (!kostentraeger) fehler += 'Kostenträger fehlt. ';
+            if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis fehlt. ';
+        }
+        if (fehler) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ ' + fehler;
+            return;
+        }
+        errorDiv.style.display = 'none';
+        
+        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil, trinkgeld, art });
+        
+        document.getElementById('von').value = '';
+        document.getElementById('nach').value = '';
+        document.getElementById('fahrgast').value = '';
+        document.getElementById('kostentraeger').value = '';
+        document.getElementById('preis').value = '';
+        document.getElementById('eigenanteil').value = '';
+        document.getElementById('trinkgeld').value = '';
+        document.getElementById('fahrtart').value = 'bar';
+        kostentraegerField.readOnly = false;
+        kostentraegerField.style.background = 'white';
+        if (kostentraegerHint) kostentraegerHint.innerHTML = '';
+        
+        saveAndUpdate();
+        document.getElementById('summary').style.display = 'none';
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 50);
+    }
+
+    function showSummary() {
+        if (fahrten.length === 0) { alert('Keine Fahrten.'); return; }
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getPlainTextSummary()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <button id="closeSummary" style="background: #95a5a6;">Schließen</button>
+            </div>`;
+        summaryDiv.style.display = 'block';
+        document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
     }
     
     function resetAll() {

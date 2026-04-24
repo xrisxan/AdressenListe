@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Digitales Fahrtenbuch - Pro</title>
+    <title>Digitales Fahrtenbuch</title>
     <style>
         * {
             box-sizing: border-box;
@@ -364,15 +364,15 @@
     let db = null;
     let searchTimeout = null;
     
-    // ========== HIER DEINE GITHUB-URL EINTRAGEN ==========
-    const ADRESSEN_URL = 'https://raw.githubusercontent.com/xrisxan/AdressenListe/refs/heads/main/adressen.txt';
-    // =====================================================
+    // ========== DIE ADRESSEN WERDEN AUTOMATISCH AUS DEM SELBEN VERZEICHNIS GELADEN ==========
+    // Diese URL zeigt auf die adressen.txt im selben GitHub-Repository
+    const ADRESSEN_URL = 'adressen.txt';
+    // ========================================================================================
     
     const DB_NAME = 'FahrtenbuchDB';
     const DB_VERSION = 1;
     const STORE_NAME = 'adressen';
     
-    // IndexedDB initialisieren
     function initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -396,8 +396,7 @@
         });
     }
     
-    // Adressen in IndexedDB speichern
-    async function saveToIndexedDB(adressen) {
+    function saveToIndexedDB(adressen) {
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
@@ -428,7 +427,6 @@
         });
     }
     
-    // In IndexedDB suchen (optimiert für große Datenmengen)
     async function searchInDB(searchTerm) {
         return new Promise((resolve) => {
             if (!db || searchTerm.length < 2) {
@@ -483,7 +481,7 @@
     
     async function loadAdressenFromGitHub() {
         const statusBar = document.getElementById('statusBar');
-        statusBar.innerHTML = '📡 Lade Adressliste von GitHub...';
+        statusBar.innerHTML = '📡 Lade Adressliste...';
         statusBar.style.background = '#fff3cd';
         
         try {
@@ -530,7 +528,7 @@
             
             setTimeout(() => {
                 statusBar.style.background = '#e8f0fe';
-                statusBar.innerHTML = `📋 ${adressListe.length} Adressen verfügbar (IndexedDB)`;
+                statusBar.innerHTML = `📋 ${adressListe.length} Adressen verfügbar`;
             }, 3000);
             
         } catch (error) {
@@ -620,13 +618,12 @@
         await loadAdressenFromGitHub();
     }
     
-    // Initialisierung
     async function init() {
         await initDB();
         
         const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
         if (savedCount) {
-            document.getElementById('statusBar').innerHTML = `📋 ${savedCount} Adressen im Cache (wird geladen...)`;
+            document.getElementById('statusBar').innerHTML = `📋 ${savedCount} Adressen im Cache...`;
         }
         
         await loadAdressenFromGitHub();

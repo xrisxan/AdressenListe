@@ -326,10 +326,10 @@
             font-size: 12px;
         }
         
-        .pdf-btn {
-            background: #e74c3c;
+        .share-btn {
+            background: #f39c12;
             color: white;
-            flex: 0.3;
+            flex: 0.4;
             padding: 10px;
             font-size: 12px;
         }
@@ -338,6 +338,46 @@
             font-size: 10px;
             color: #27ae60;
             margin-left: 6px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            width: 90%;
+            max-width: 350px;
+            text-align: center;
+        }
+        
+        .modal-content h4 {
+            margin-top: 0;
+        }
+        
+        .modal-content input {
+            width: 100%;
+            padding: 10px;
+            font-size: 15px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+        
+        .modal-content button {
+            margin-top: 8px;
+            width: 100%;
         }
         
         /* Druck-Styles für PDF */
@@ -355,12 +395,6 @@
                 width: 100%;
                 padding: 20px;
                 font-family: Arial, Helvetica, sans-serif;
-            }
-            .no-print {
-                display: none;
-            }
-            button {
-                display: none;
             }
         }
         
@@ -382,6 +416,8 @@
         .print-report hr { margin: 20px 0; }
         .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
     </style>
+    <!-- PDF Bibliothek html2pdf -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -433,19 +469,34 @@
 
 <div class="action-bar">
     <button class="refresh-btn" id="refreshBtn">🔄</button>
-    <button class="pdf-btn" id="pdfBtn">📄 PDF</button>
+    <button class="share-btn" id="shareBtn">📧 Senden</button>
     <button class="summary-btn" id="summaryBtn">📊 Schicht</button>
     <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
 
-<!-- Versteckter Container für den Druck/PDF -->
-<div id="printContainer" style="display: none;"></div>
+<div id="emailModal" class="modal">
+    <div class="modal-content">
+        <h4>📧 E-Mail Einstellungen</h4>
+        <p>Empfänger-Adresse (Chef/Buchhaltung):</p>
+        <input type="email" id="emailRecipient" placeholder="empfaenger@example.com">
+        <button id="saveEmailBtn">💾 Speichern</button>
+        <button id="closeEmailBtn" style="background:#95a5a6;">Schließen</button>
+    </div>
+</div>
+
+<div id="loadingModal" class="modal">
+    <div class="modal-content">
+        <h4>📄 Abrechnung wird erstellt...</h4>
+        <div id="loadingStatus">Bitte warten, PDF wird generiert...</div>
+    </div>
+</div>
 
 <script>
     let fahrten = [];
     let adressListe = [];
     let db = null;
     let searchTimeout = null;
+    let emailRecipient = localStorage.getItem('fahrtenbuch_email') || '';
     
     const ADRESSEN_URL = 'adressen.txt';
     const DB_NAME = 'FahrtenbuchDB';
@@ -687,8 +738,7 @@
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
     
-    // ========== PDF über Druckdialog (zuverlässig!) ==========
-    function getPrintHTML() {
+    function getPDFHTML() {
         if (fahrten.length === 0) return '<div class="print-report"><p>Keine Fahrten erfasst.</p></div>';
         
         let gruppen = {
@@ -741,7 +791,7 @@
             html += `
                 <div class="gruppe">
                     <div class="gruppen-titel" style="border-left-color: ${g.farbe};">${g.name} (${g.anzahl} Fahrten)</div>
-                    <table>
+                    <table class="fahrten-tabelle">
                         <thead>
                             <tr><th>#</th><th>Von</th><th>Nach</th><th>Fahrgast</th><th>Kostenträger</th><th>Preis</th><th>TG</th></tr>
                         </thead>
@@ -788,61 +838,152 @@
         return html;
     }
     
-    function printToPDF() {
+    function getEmailText() {
+        if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
+        
+        let gruppen = {
+            bar: { name: "Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            rechnung: { name: "Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            kranken: { name: "Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            karte: { name: "Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
+        };
+        
+        let gesamtEinnahme = 0;
+        
+        fahrten.forEach(f => {
+            const einnahme = f.preis + f.trinkgeld;
+            gesamtEinnahme += einnahme;
+            if (f.art === 'bar') {
+                gruppen.bar.fahrten.push(f);
+                gruppen.bar.summe += einnahme;
+                gruppen.bar.trinkgeld += f.trinkgeld;
+                gruppen.bar.anzahl++;
+            } else if (f.art === 'rechnung') {
+                gruppen.rechnung.fahrten.push(f);
+                gruppen.rechnung.summe += einnahme;
+                gruppen.rechnung.trinkgeld += f.trinkgeld;
+                gruppen.rechnung.anzahl++;
+            } else if (f.art === 'kranken') {
+                gruppen.kranken.fahrten.push(f);
+                gruppen.kranken.summe += einnahme;
+                gruppen.kranken.trinkgeld += f.trinkgeld;
+                gruppen.kranken.anzahl++;
+            } else if (f.art === 'karte') {
+                gruppen.karte.fahrten.push(f);
+                gruppen.karte.summe += einnahme;
+                gruppen.karte.trinkgeld += f.trinkgeld;
+                gruppen.karte.anzahl++;
+            }
+        });
+        
+        const datum = new Date().toLocaleString('de-DE');
+        let text = `📊 FAHRTENBUCH ABRECHNUNG - ${datum}\n`;
+        text += `═`.repeat(50) + `\n\n`;
+        text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
+        text += `─`.repeat(50) + `\n\n`;
+        
+        const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
+        for (let key of reihenfolge) {
+            const g = gruppen[key];
+            if (g.anzahl === 0) continue;
+            
+            text += `${g.name} (${g.anzahl} Fahrten)\n`;
+            text += `${' '.repeat(40)}\n`;
+            
+            g.fahrten.forEach((f, idx) => {
+                text += `${idx+1}. ${f.von} → ${f.nach}\n`;
+                text += `   ${f.preis}€ | TG: ${f.trinkgeld}€ | ${f.fahrgast || '-'} | ${f.kostentraeger || '-'}\n`;
+            });
+            
+            text += `\n   📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)\n`;
+            text += `\n${'─'.repeat(40)}\n\n`;
+        }
+        
+        const kartenTrinkgeld = gruppen.karte.trinkgeld;
+        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):\n`;
+        text += `   → ${kartenTrinkgeld.toFixed(2)} €\n\n`;
+        text += `═`.repeat(50) + `\n`;
+        text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
+        text += `\n📎 Im Anhang finden Sie die detaillierte PDF-Abrechnung.`;
+        
+        return text;
+    }
+    
+    async function shareReport() {
         if (fahrten.length === 0) {
-            alert('Keine Fahrten zum Exportieren.');
+            alert('Keine Fahrten zum Versenden.');
             return;
         }
         
-        const printHTML = getPrintHTML();
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <meta charset="UTF-8">
-                <title>Fahrtenbuch Abrechnung</title>
-                <style>
-                    body {
-                        font-family: Arial, Helvetica, sans-serif;
-                        margin: 0;
-                        padding: 20px;
-                    }
-                    .print-report {
-                        max-width: 100%;
-                    }
-                    .print-report h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
-                    .print-report .date { text-align: center; font-size: 11px; color: #666; margin-bottom: 20px; }
-                    .print-report .total { font-size: 15px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
-                    .print-report .gruppe { margin: 20px 0; page-break-inside: avoid; }
-                    .print-report .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
-                    .print-report table { width: 100%; border-collapse: collapse; font-size: 10px; }
-                    .print-report th { background: #f5f5f5; padding: 6px; text-align: left; border-bottom: 1px solid #ddd; }
-                    .print-report td { padding: 5px 6px; border-bottom: 1px solid #eee; }
-                    .print-report .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 11px; }
-                    .print-report .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
-                    .print-report hr { margin: 20px 0; }
-                    .print-report .footer { font-size: 9px; color: #999; text-align: center; margin-top: 30px; }
-                    @media print {
-                        body {
-                            margin: 0;
-                            padding: 0;
-                        }
-                    }
-                </style>
-            </head>
-            <body>
-                ${printHTML}
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        setTimeout(function() { window.close(); }, 1000);
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
+        if (!emailRecipient) {
+            alert('Bitte zuerst die Empfänger-Adresse unter "📧 Senden" speichern.\n\nKlicken Sie auf den Button und geben Sie die E-Mail-Adresse des Chefs/Buchhaltung ein.');
+            document.getElementById('emailModal').style.display = 'flex';
+            document.getElementById('emailRecipient').value = emailRecipient;
+            return;
+        }
+        
+        const loadingModal = document.getElementById('loadingModal');
+        const loadingStatus = document.getElementById('loadingStatus');
+        loadingModal.style.display = 'flex';
+        loadingStatus.innerHTML = 'Erstelle PDF...';
+        
+        try {
+            const htmlContent = getPDFHTML();
+            const container = document.createElement('div');
+            container.style.position = 'absolute';
+            container.style.left = '-9999px';
+            container.style.top = '-9999px';
+            container.style.width = '800px';
+            container.style.backgroundColor = 'white';
+            container.innerHTML = htmlContent;
+            document.body.appendChild(container);
+            
+            loadingStatus.innerHTML = 'Generiere PDF Datei...';
+            await new Promise(resolve => setTimeout(resolve, 200));
+            
+            const opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: false, letterRendering: true, logging: false },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            
+            const pdfBlob = await html2pdf().set(opt).from(container).outputPdf('blob');
+            document.body.removeChild(container);
+            
+            loadingStatus.innerHTML = 'Öffne Teilen-Menü...';
+            await new Promise(resolve => setTimeout(resolve, 300));
+            
+            // Datei für Teilen vorbereiten
+            const file = new File([pdfBlob], `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`, { type: 'application/pdf' });
+            
+            // E-Mail Text vorbereiten
+            const betreff = `Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`;
+            const body = getEmailText();
+            
+            loadingModal.style.display = 'none';
+            
+            // Teilen-Menü öffnen (funktioniert auf iOS und Android)
+            if (navigator.share) {
+                // Moderner Browser mit Web Share API
+                await navigator.share({
+                    title: 'Fahrtenbuch Abrechnung',
+                    text: `${betreff}\n\n${body}`,
+                    files: [file]
+                });
+            } else {
+                // Fallback: E-Mail mit vorausgefülltem Text (ohne Anhang, aber mit Hinweis)
+                const mailtoLink = `mailto:${emailRecipient}?subject=${encodeURIComponent(betreff)}&body=${encodeURIComponent(body + '\n\n(Die PDF-Datei konnte nicht automatisch angehängt werden. Bitte speichern Sie die PDF separat und hängen Sie sie an.)')}`;
+                window.location.href = mailtoLink;
+                alert('PDF wurde erstellt. Bitte hängen Sie die Datei manuell an, da Ihr Browser keine automatischen Anhänge unterstützt.\n\nDie PDF-Datei wurde im Download-Ordner gespeichert.');
+            }
+            
+        } catch (error) {
+            console.error('Fehler:', error);
+            loadingModal.style.display = 'none';
+            alert('Fehler beim Erstellen des PDFs: ' + error.message);
+        }
     }
     
     function getPlainTextSummary() {
@@ -1047,7 +1188,28 @@
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('pdfBtn').addEventListener('click', printToPDF);
+    document.getElementById('shareBtn').addEventListener('click', () => {
+        if (emailRecipient) {
+            shareReport();
+        } else {
+            document.getElementById('emailModal').style.display = 'flex';
+            document.getElementById('emailRecipient').value = '';
+        }
+    });
+    document.getElementById('saveEmailBtn').addEventListener('click', () => {
+        emailRecipient = document.getElementById('emailRecipient').value.trim();
+        localStorage.setItem('fahrtenbuch_email', emailRecipient);
+        document.getElementById('emailModal').style.display = 'none';
+        if (fahrten.length > 0) {
+            shareReport();
+        }
+    });
+    document.getElementById('closeEmailBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').style.display = 'none';
+    });
+    document.getElementById('closePdfModalBtn')?.addEventListener('click', () => {
+        document.getElementById('loadingModal').style.display = 'none';
+    });
     
     init();
 </script>

@@ -273,7 +273,7 @@
             border-radius: 8px;
             margin: 0;
             font-size: 12px;
-            max-height: 400px;
+            max-height: 350px;
             overflow-y: auto;
             line-height: 1.4;
         }
@@ -316,8 +316,8 @@
             font-size: 12px;
         }
         
-        .email-btn {
-            background: #f39c12;
+        .pdf-btn {
+            background: #e74c3c;
             color: white;
             flex: 0.3;
             padding: 10px;
@@ -349,15 +349,6 @@
             margin-top: 0;
         }
         
-        .modal-content input {
-            width: 100%;
-            padding: 10px;
-            font-size: 15px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            margin: 10px 0;
-        }
-        
         .modal-content button {
             margin-top: 8px;
             width: 100%;
@@ -369,6 +360,8 @@
             margin-left: 6px;
         }
     </style>
+    <!-- PDF Bibliothek -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
 <body>
 
@@ -420,18 +413,16 @@
 
 <div class="action-bar">
     <button class="refresh-btn" id="refreshBtn">🔄</button>
-    <button class="email-btn" id="emailSettingsBtn">📧</button>
+    <button class="pdf-btn" id="pdfBtn">📄 PDF</button>
     <button class="summary-btn" id="summaryBtn">📊 Schicht</button>
     <button class="reset-btn" id="resetBtn">🗑 Alle</button>
 </div>
 
-<div id="emailModal" class="modal">
+<div id="pdfModal" class="modal">
     <div class="modal-content">
-        <h4>📧 E-Mail Einstellungen</h4>
-        <p>Empfänger für Abrechnung:</p>
-        <input type="email" id="emailRecipient" placeholder="empfaenger@example.com">
-        <button id="saveEmailBtn">💾 Speichern</button>
-        <button id="closeEmailBtn" style="background:#95a5a6;">Schließen</button>
+        <h4>📄 PDF wird erstellt...</h4>
+        <p id="pdfStatus">Bitte warten...</p>
+        <button id="closePdfModalBtn">Schließen</button>
     </div>
 </div>
 
@@ -440,8 +431,6 @@
     let adressListe = [];
     let db = null;
     let searchTimeout = null;
-    
-    let emailRecipient = localStorage.getItem('fahrtenbuch_email') || '';
     
     const ADRESSEN_URL = 'adressen.txt';
     const DB_NAME = 'FahrtenbuchDB';
@@ -678,16 +667,15 @@
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
-    // ========== ABRECHNUNG MIT GRUPPEN ==========
-    function getSummaryText() {
-        if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
+    // ========== ABRECHNUNG MIT GRUPPEN (als HTML für PDF) ==========
+    function getSummaryHTML() {
+        if (fahrten.length === 0) return '<p>Keine Fahrten erfasst.</p>';
         
-        // Gruppen für jede Fahrtart
         let gruppen = {
-            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
-            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
+            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#4caf50" },
+            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#2196f3" },
+            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#f44336" },
+            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0, farbe: "#9c27b0" }
         };
         
         let gesamtEinnahme = 0;
@@ -720,55 +708,145 @@
         });
         
         const datum = new Date().toLocaleString('de-DE');
-        let text = "";
+        let html = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>Fahrtenbuch Abrechnung ${new Date().toLocaleDateString('de-DE')}</title>
+                <style>
+                    body {
+                        font-family: 'Helvetica', Arial, sans-serif;
+                        margin: 20px;
+                        line-height: 1.4;
+                    }
+                    h1 { font-size: 18px; text-align: center; margin-bottom: 5px; }
+            .date { text-align: center; font-size: 12px; color: #666; margin-bottom: 20px; }
+            .total { font-size: 16px; font-weight: bold; text-align: center; margin: 15px 0; padding: 10px; background: #f0f0f0; }
+            .gruppe { margin: 20px 0; page-break-inside: avoid; }
+            .gruppen-titel { font-size: 14px; font-weight: bold; padding: 8px; border-left: 5px solid; margin-bottom: 10px; }
+            .fahrten-tabelle { width: 100%; border-collapse: collapse; font-size: 11px; }
+            .fahrten-tabelle th { background: #f5f5f5; padding: 8px; text-align: left; border-bottom: 1px solid #ddd; }
+            .fahrten-tabelle td { padding: 6px 8px; border-bottom: 1px solid #eee; }
+            .summe { font-weight: bold; margin-top: 8px; text-align: right; font-size: 12px; }
+            .karten-tip { margin-top: 20px; padding: 10px; background: #fff3e0; border-left: 5px solid #f39c12; }
+            hr { margin: 20px 0; }
+            .footer { font-size: 10px; color: #999; text-align: center; margin-top: 30px; }
+                </style>
+            </head>
+            <body>
+                <h1>📊 FAHRTENBUCH ABRECHNUNG</h1>
+                <div class="date">${datum}</div>
+                
+                <div class="total">💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €</div>
+        `;
         
-        text += "═".repeat(50) + "\n";
-        text += `        📊 FAHRTENBUCH ABRECHNUNG\n`;
-        text += `             ${datum}\n`;
-        text += "═".repeat(50) + "\n\n";
-        
-        text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
-        text += "─".repeat(50) + "\n\n";
-        
-        // Gruppen einzeln ausgeben
         const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
         for (let key of reihenfolge) {
             const g = gruppen[key];
             if (g.anzahl === 0) continue;
             
-            text += `${g.name} (${g.anzahl} Fahrten)\n`;
-            text += "${' ' + '='.repeat(40)}\n";
+            html += `
+                <div class="gruppe">
+                    <div class="gruppen-titel" style="border-left-color: ${g.farbe};">${g.name} (${g.anzahl} Fahrten)</div>
+                    <table class="fahrten-tabelle">
+                        <thead>
+                            <tr><th>#</th><th>Von</th><th>Nach</th><th>Fahrgast</th><th>Kostenträger</th><th>Preis</th><th>TG</th></tr>
+                        </thead>
+                        <tbody>
+            `;
             
             g.fahrten.forEach((f, idx) => {
-                const kurzVon = f.von.length > 25 ? f.von.substring(0, 22) + "..." : f.von;
-                const kurzNach = f.nach.length > 25 ? f.nach.substring(0, 22) + "..." : f.nach;
-                text += `${idx+1}. ${kurzVon} → ${kurzNach}\n`;
-                text += `   ${f.preis}€ | TG: ${f.trinkgeld}€ | ${f.fahrgast || '-'} | ${f.kostentraeger || '-'}\n`;
+                html += `
+                    <tr>
+                        <td>${idx+1}</td>
+                        <td>${escapeHtml(f.von.substring(0, 30))}${f.von.length > 30 ? '...' : ''}</td>
+                        <td>${escapeHtml(f.nach.substring(0, 30))}${f.nach.length > 30 ? '...' : ''}</td>
+                        <td>${escapeHtml(f.fahrgast || '-')}</td>
+                        <td>${escapeHtml(f.kostentraeger || '-')}</td>
+                        <td style="text-align:right">${f.preis.toFixed(2)} €</td>
+                        <td style="text-align:right">${f.trinkgeld.toFixed(2)} €</td>
+                    </tr>
+                `;
             });
             
-            text += `\n   📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)\n`;
-            text += "\n" + "─".repeat(40) + "\n\n";
+            html += `
+                        </tbody>
+                    </table>
+                    <div class="summe">📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)</div>
+                </div>
+            `;
         }
         
-        // Trinkgeld aus Kartenzahlung (für Chef)
         const kartenTrinkgeld = gruppen.karte.trinkgeld;
-        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):\n`;
-        text += `   → ${kartenTrinkgeld.toFixed(2)} €\n\n`;
+        html += `
+                <div class="karten-tip">
+                    💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):<br>
+                    <strong>${kartenTrinkgeld.toFixed(2)} €</strong>
+                </div>
+                <hr>
+                <div class="footer">
+                    📋 Gesamt: ${fahrten.length} Fahrten | Erstellt mit Digitalem Fahrtenbuch
+                </div>
+            </body>
+            </html>
+        `;
         
-        text += "═".repeat(50) + "\n";
-        text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
-        
-        return text;
+        return html;
     }
-    // =========================================================================
     
-    function sendEmail() {
-        if (fahrten.length === 0) { alert('Keine Fahrten.'); return false; }
-        if (!emailRecipient) { alert('E-Mail unter 📧 speichern.'); return false; }
-        const betreff = encodeURIComponent(`Fahrtenbuch - ${new Date().toLocaleDateString('de-DE')}`);
-        const body = encodeURIComponent(getSummaryText());
-        window.location.href = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
-        return true;
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
+    }
+    
+    async function generatePDF() {
+        if (fahrten.length === 0) {
+            alert('Keine Fahrten zum Exportieren.');
+            return;
+        }
+        
+        const modal = document.getElementById('pdfModal');
+        const pdfStatus = document.getElementById('pdfStatus');
+        modal.style.display = 'flex';
+        pdfStatus.innerHTML = 'Erstelle PDF...';
+        
+        try {
+            const html = getSummaryHTML();
+            
+            // Temporäres Element für PDF-Erstellung
+            const element = document.createElement('div');
+            element.innerHTML = html;
+            element.style.position = 'absolute';
+            element.style.left = '-9999px';
+            element.style.top = '-9999px';
+            document.body.appendChild(element);
+            
+            const opt = {
+                margin: [0.5, 0.5, 0.5, 0.5],
+                filename: `Fahrtenbuch_${new Date().toLocaleDateString('de-DE').replace(/\./g, '_')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: false, letterRendering: true },
+                jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+            };
+            
+            pdfStatus.innerHTML = 'Generiere PDF, bitte warten...';
+            
+            await html2pdf().set(opt).from(element).save();
+            
+            document.body.removeChild(element);
+            pdfStatus.innerHTML = '✅ PDF wurde gespeichert!';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 2000);
+            
+        } catch (error) {
+            console.error('PDF Fehler:', error);
+            pdfStatus.innerHTML = '❌ Fehler beim PDF-Erstellen';
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 3000);
+        }
     }
     
     const fahrtartSelect = document.getElementById('fahrtart');
@@ -799,14 +877,14 @@
             let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Karte' : f.art === 'rechnung' ? 'Rechnung' : 'Kranken';
             const div = document.createElement('div');
             div.className = `fahrt ${f.art}`;
-            div.innerHTML = `<div class="fahrt-header">${escapeHtml(f.von)} → ${escapeHtml(f.nach)}</div>
-                <div class="fahrt-details">👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>💶 ${f.preis} € | TG: ${f.trinkgeld} € | ${artName}</div>
+            div.innerHTML = `<div class="fahrt-header">${escapeHtmlSimple(f.von)} → ${escapeHtmlSimple(f.nach)}</div>
+                <div class="fahrt-details">👤 ${escapeHtmlSimple(f.fahrgast || '-')} | 🏢 ${escapeHtmlSimple(f.kostentraeger || '-')}<br>💶 ${f.preis} € | TG: ${f.trinkgeld} € | ${artName}</div>
                 <button class="delete-btn" onclick="deleteFahrt(${index})">❌</button>`;
             container.appendChild(div);
         });
     }
     
-    function escapeHtml(str) {
+    function escapeHtmlSimple(str) {
         if (!str) return '';
         return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
@@ -880,14 +958,90 @@
     function showSummary() {
         if (fahrten.length === 0) { alert('Keine Fahrten.'); return; }
         const summaryDiv = document.getElementById('summary');
-        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
-            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail</button>
-            <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
+        // Nur-Text-Version für die Anzeige (ohne HTML)
+        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getPlainTextSummary()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;">
+                <button id="closeSummary" style="background: #95a5a6;">Schließen</button>
+            </div>`;
         summaryDiv.style.display = 'block';
-        document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());
         document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
         const scrollArea = document.getElementById('scrollArea');
         setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+    
+    function getPlainTextSummary() {
+        if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
+        
+        let gruppen = {
+            bar: { name: "🚕 Bar", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            rechnung: { name: "🧾 Rechnungsfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            kranken: { name: "🏥 Krankenfahrt", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 },
+            karte: { name: "💳 Kartenzahlung", fahrten: [], summe: 0, trinkgeld: 0, anzahl: 0 }
+        };
+        
+        let gesamtEinnahme = 0;
+        
+        fahrten.forEach(f => {
+            const einnahme = f.preis + f.trinkgeld;
+            gesamtEinnahme += einnahme;
+            if (f.art === 'bar') {
+                gruppen.bar.fahrten.push(f);
+                gruppen.bar.summe += einnahme;
+                gruppen.bar.trinkgeld += f.trinkgeld;
+                gruppen.bar.anzahl++;
+            } else if (f.art === 'rechnung') {
+                gruppen.rechnung.fahrten.push(f);
+                gruppen.rechnung.summe += einnahme;
+                gruppen.rechnung.trinkgeld += f.trinkgeld;
+                gruppen.rechnung.anzahl++;
+            } else if (f.art === 'kranken') {
+                gruppen.kranken.fahrten.push(f);
+                gruppen.kranken.summe += einnahme;
+                gruppen.kranken.trinkgeld += f.trinkgeld;
+                gruppen.kranken.anzahl++;
+            } else if (f.art === 'karte') {
+                gruppen.karte.fahrten.push(f);
+                gruppen.karte.summe += einnahme;
+                gruppen.karte.trinkgeld += f.trinkgeld;
+                gruppen.karte.anzahl++;
+            }
+        });
+        
+        const datum = new Date().toLocaleString('de-DE');
+        let text = "";
+        text += "═".repeat(50) + "\n";
+        text += `        📊 FAHRTENBUCH ABRECHNUNG\n`;
+        text += `             ${datum}\n`;
+        text += "═".repeat(50) + "\n\n";
+        text += `💰 GESAMTEINNAHME: ${gesamtEinnahme.toFixed(2)} €\n\n`;
+        text += "─".repeat(50) + "\n\n";
+        
+        const reihenfolge = ['bar', 'rechnung', 'kranken', 'karte'];
+        for (let key of reihenfolge) {
+            const g = gruppen[key];
+            if (g.anzahl === 0) continue;
+            
+            text += `${g.name} (${g.anzahl} Fahrten)\n`;
+            text += " ".repeat(40) + "\n";
+            
+            g.fahrten.forEach((f, idx) => {
+                const kurzVon = f.von.length > 25 ? f.von.substring(0, 22) + "..." : f.von;
+                const kurzNach = f.nach.length > 25 ? f.nach.substring(0, 22) + "..." : f.nach;
+                text += `${idx+1}. ${kurzVon} → ${kurzNach}\n`;
+                text += `   ${f.preis}€ | TG: ${f.trinkgeld}€ | ${f.fahrgast || '-'} | ${f.kostentraeger || '-'}\n`;
+            });
+            
+            text += `\n   📍 SUMME: ${g.summe.toFixed(2)} € (davon Trinkgeld: ${g.trinkgeld.toFixed(2)} €)\n`;
+            text += "\n" + "─".repeat(40) + "\n\n";
+        }
+        
+        const kartenTrinkgeld = gruppen.karte.trinkgeld;
+        text += `💳 Trinkgeld aus Kartenzahlung (vom Chef zu zahlen):\n`;
+        text += `   → ${kartenTrinkgeld.toFixed(2)} €\n\n`;
+        text += "═".repeat(50) + "\n";
+        text += `📋 Gesamt: ${fahrten.length} Fahrten\n`;
+        
+        return text;
     }
     
     function resetAll() {
@@ -903,17 +1057,9 @@
     document.getElementById('summaryBtn').addEventListener('click', showSummary);
     document.getElementById('resetBtn').addEventListener('click', resetAll);
     document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
-    document.getElementById('emailSettingsBtn').addEventListener('click', () => {
-        document.getElementById('emailModal').style.display = 'flex';
-        document.getElementById('emailRecipient').value = emailRecipient;
-    });
-    document.getElementById('saveEmailBtn').addEventListener('click', () => {
-        emailRecipient = document.getElementById('emailRecipient').value.trim();
-        localStorage.setItem('fahrtenbuch_email', emailRecipient);
-        document.getElementById('emailModal').style.display = 'none';
-    });
-    document.getElementById('closeEmailBtn').addEventListener('click', () => {
-        document.getElementById('emailModal').style.display = 'none';
+    document.getElementById('pdfBtn').addEventListener('click', generatePDF);
+    document.getElementById('closePdfModalBtn').addEventListener('click', () => {
+        document.getElementById('pdfModal').style.display = 'none';
     });
     
     init();

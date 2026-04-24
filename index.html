@@ -443,22 +443,9 @@
     const DB_VERSION = 1;
     const STORE_NAME = 'adressen';
     
-    // ========== PERSISTENTE SPEICHERUNG DER FAHRTEN ==========
+    // ========== PERSISTENTE SPEICHERUNG ==========
     function saveFahrtenToLocalStorage() {
         localStorage.setItem('fahrtenbuch_fahrten', JSON.stringify(fahrten));
-        // Kleine Rückmeldung im Status (optional)
-        const statusBar = document.getElementById('statusBar');
-        const originalText = statusBar.innerHTML;
-        if (!originalText.includes('💾')) {
-            statusBar.innerHTML = `💾 ${fahrten.length} Fahrten gespeichert`;
-            statusBar.style.background = '#d4edda';
-            setTimeout(() => {
-                if (document.getElementById('statusBar')) {
-                    document.getElementById('statusBar').innerHTML = originalText;
-                    document.getElementById('statusBar').style.background = '#e8f0fe';
-                }
-            }, 1500);
-        }
     }
     
     function loadFahrtenFromLocalStorage() {
@@ -468,31 +455,25 @@
                 fahrten = JSON.parse(saved);
                 updateListe();
             } catch(e) {
-                console.error('Fehler beim Laden der Fahrten:', e);
                 fahrten = [];
             }
-        } else {
-            fahrten = [];
         }
     }
     
-    // Nach jeder Änderung speichern
     function saveAndUpdate() {
         saveFahrtenToLocalStorage();
         updateListe();
     }
-    // ========================================================
+    // =============================================
     
     function initDB() {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(DB_NAME, DB_VERSION);
-            
             request.onerror = () => reject(request.error);
             request.onsuccess = () => {
                 db = request.result;
                 resolve();
             };
-            
             request.onupgradeneeded = (event) => {
                 const db = event.target.result;
                 if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -510,13 +491,10 @@
         return new Promise((resolve, reject) => {
             const transaction = db.transaction([STORE_NAME], 'readwrite');
             const store = transaction.objectStore(STORE_NAME);
-            
             store.clear();
-            
             let count = 0;
             const total = adressen.length;
-            
-            adressen.forEach((adr, index) => {
+            adressen.forEach((adr) => {
                 const suchbegriff = `${adr.strasse} ${adr.plz} ${adr.ort} ${adr.ortsteil || ''}`.toLowerCase();
                 const request = store.add({
                     strasse: adr.strasse,
@@ -525,7 +503,6 @@
                     ortsteil: adr.ortsteil || '',
                     suchbegriff: suchbegriff
                 });
-                
                 request.onsuccess = () => {
                     count++;
                     const progress = (count / total) * 100;
@@ -543,13 +520,11 @@
                 resolve([]);
                 return;
             }
-            
             const transaction = db.transaction([STORE_NAME], 'readonly');
             const store = transaction.objectStore(STORE_NAME);
             const index = store.index('suchbegriff');
             const range = IDBKeyRange.bound(searchTerm, searchTerm + '\uffff');
             const results = [];
-            
             index.openCursor(range).onsuccess = (event) => {
                 const cursor = event.target.result;
                 if (cursor && results.length < 20) {
@@ -593,19 +568,11 @@
         const statusBar = document.getElementById('statusBar');
         statusBar.innerHTML = '📡 Lade Adressliste...';
         statusBar.style.background = '#fff3cd';
-        
         try {
-            const response = await fetch(ADRESSEN_URL, {
-                cache: 'no-cache'
-            });
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}`);
-            }
-            
+            const response = await fetch(ADRESSEN_URL, { cache: 'no-cache' });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
             const text = await response.text();
             const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-            
             const neueListe = [];
             for (let line of lines) {
                 const parts = line.split(';');
@@ -623,33 +590,21 @@
                     });
                 }
             }
-            
             adressListe = neueListe;
-            
-            if (db) {
-                await saveToIndexedDB(adressListe);
-            }
-            
+            if (db) await saveToIndexedDB(adressListe);
             localStorage.setItem('fahrtenbuch_adressen_count', adressListe.length);
-            localStorage.setItem('fahrtenbuch_adressen_datum', new Date().toISOString());
-            
             statusBar.innerHTML = `✅ ${adressListe.length} Adressen geladen`;
             statusBar.style.background = '#d4edda';
-            
             setTimeout(() => {
                 statusBar.style.background = '#e8f0fe';
                 statusBar.innerHTML = `📋 ${adressListe.length} Adressen verfügbar`;
             }, 3000);
-            
         } catch (error) {
-            console.error('Fehler:', error);
-            statusBar.innerHTML = `⚠️ Fehler beim Laden: ${error.message}`;
+            statusBar.innerHTML = `⚠️ Fehler: ${error.message}`;
             statusBar.style.background = '#f8d7da';
-            
             const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
             if (savedCount) {
-                statusBar.innerHTML = `⚠️ Offline-Modus: ${savedCount} Adressen im Cache`;
-                statusBar.style.background = '#fff3cd';
+                statusBar.innerHTML = `⚠️ Offline: ${savedCount} Adressen im Cache`;
             }
         }
     }
@@ -657,42 +612,32 @@
     async function setupAutocomplete(inputId, listId) {
         const textarea = document.getElementById(inputId);
         if (!textarea) return;
-        
         const autocompleteList = document.getElementById(listId);
         if (!autocompleteList) return;
         
         const newTextarea = textarea.cloneNode(true);
         textarea.parentNode.replaceChild(newTextarea, textarea);
-        
         const finalTextarea = newTextarea;
         const finalList = autocompleteList;
         
         finalTextarea.addEventListener('input', async function() {
             const value = this.value.toLowerCase();
-            
             if (searchTimeout) clearTimeout(searchTimeout);
-            
             if (value.length < 2) {
                 finalList.style.display = 'none';
                 return;
             }
-            
             searchTimeout = setTimeout(async () => {
                 const matches = await searchInDB(value);
-                
                 if (matches.length === 0) {
                     finalList.style.display = 'none';
                     return;
                 }
-                
                 finalList.innerHTML = '';
                 matches.slice(0, 15).forEach(adr => {
                     const div = document.createElement('div');
                     div.className = 'autocomplete-item';
-                    div.innerHTML = `
-                        <strong>${adr.strasse}</strong>
-                        <small>${adr.plz} ${adr.ort}${adr.ortsteil ? ' (' + adr.ortsteil + ')' : ''}</small>
-                    `;
+                    div.innerHTML = `<strong>${adr.strasse}</strong><small>${adr.plz} ${adr.ort}${adr.ortsteil ? ' (' + adr.ortsteil + ')' : ''}</small>`;
                     div.addEventListener('click', function() {
                         finalTextarea.value = formatAdresseForDisplay(adr);
                         finalList.style.display = 'none';
@@ -704,157 +649,62 @@
                 finalList.style.display = 'block';
             }, 150);
         });
-        
         document.addEventListener('click', function(e) {
             if (e.target !== finalTextarea && !finalList.contains(e.target)) {
                 finalList.style.display = 'none';
             }
         });
-        
         function adjustHeight() {
             finalTextarea.style.height = 'auto';
             finalTextarea.style.height = Math.max(80, finalTextarea.scrollHeight) + 'px';
         }
-        
         finalTextarea.addEventListener('input', adjustHeight);
         finalTextarea.id = inputId;
-        
         setTimeout(adjustHeight, 0);
     }
     
     async function refreshAdressen() {
-        const statusBar = document.getElementById('statusBar');
-        statusBar.innerHTML = '🔄 Aktualisiere Adressen...';
         await loadAdressenFromGitHub();
     }
     
     async function init() {
-        // Fahrten aus localStorage laden
         loadFahrtenFromLocalStorage();
-        
         await initDB();
-        
-        const savedCount = localStorage.getItem('fahrtenbuch_adressen_count');
-        if (savedCount) {
-            document.getElementById('statusBar').innerHTML = `📋 ${savedCount} Adressen im Cache...`;
-        }
-        
         await loadAdressenFromGitHub();
-        
         setupAutocomplete('von', 'von-autocomplete');
         setupAutocomplete('nach', 'nach-autocomplete');
     }
     
     function getSummaryText() {
-        if (fahrten.length === 0) {
-            return 'Keine Fahrten erfasst.';
-        }
-        
-        let totals = {
-            bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 },
-            kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }
-        };
-        
-        let gesamtSumme = 0;
-        let gesamtTrinkgeld = 0;
-        let gesamtEigenanteil = 0;
-        
+        if (fahrten.length === 0) return 'Keine Fahrten erfasst.';
+        let totals = { bar: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, karte: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, rechnung: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 }, kranken: { summe: 0, anzahl: 0, trinkgeld: 0, eigenanteil: 0 } };
+        let gesamtSumme = 0, gesamtTrinkgeld = 0, gesamtEigenanteil = 0;
         fahrten.forEach(f => {
             const einnahme = f.preis + f.trinkgeld;
             gesamtSumme += einnahme;
             gesamtTrinkgeld += f.trinkgeld;
             gesamtEigenanteil += f.eigenanteil;
-            
-            if (f.art === 'bar') {
-                totals.bar.summe += einnahme;
-                totals.bar.anzahl++;
-                totals.bar.trinkgeld += f.trinkgeld;
-                totals.bar.eigenanteil += f.eigenanteil;
-            } else if (f.art === 'karte') {
-                totals.karte.summe += einnahme;
-                totals.karte.anzahl++;
-                totals.karte.trinkgeld += f.trinkgeld;
-                totals.karte.eigenanteil += f.eigenanteil;
-            } else if (f.art === 'rechnung') {
-                totals.rechnung.summe += einnahme;
-                totals.rechnung.anzahl++;
-                totals.rechnung.trinkgeld += f.trinkgeld;
-                totals.rechnung.eigenanteil += f.eigenanteil;
-            } else if (f.art === 'kranken') {
-                totals.kranken.summe += einnahme;
-                totals.kranken.anzahl++;
-                totals.kranken.trinkgeld += f.trinkgeld;
-                totals.kranken.eigenanteil += f.eigenanteil;
-            }
+            if (f.art === 'bar') { totals.bar.summe += einnahme; totals.bar.anzahl++; totals.bar.trinkgeld += f.trinkgeld; totals.bar.eigenanteil += f.eigenanteil; }
+            else if (f.art === 'karte') { totals.karte.summe += einnahme; totals.karte.anzahl++; totals.karte.trinkgeld += f.trinkgeld; totals.karte.eigenanteil += f.eigenanteil; }
+            else if (f.art === 'rechnung') { totals.rechnung.summe += einnahme; totals.rechnung.anzahl++; totals.rechnung.trinkgeld += f.trinkgeld; totals.rechnung.eigenanteil += f.eigenanteil; }
+            else if (f.art === 'kranken') { totals.kranken.summe += einnahme; totals.kranken.anzahl++; totals.kranken.trinkgeld += f.trinkgeld; totals.kranken.eigenanteil += f.eigenanteil; }
         });
-        
         const datum = new Date().toLocaleString('de-DE');
-        
-        let text = `📊 Fahrtenbuch Abrechnung - ${datum}\n`;
-        text += `================================\n\n`;
-        text += `💰 Gesamteinnahme: ${gesamtSumme.toFixed(2)} €\n`;
-        text += `💶 Trinkgeld gesamt: ${gesamtTrinkgeld.toFixed(2)} €\n`;
-        text += `🧾 Eigenanteil gesamt: ${gesamtEigenanteil.toFixed(2)} €\n\n`;
-        text += `🚕 Bar: ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)\n`;
-        text += `💳 Kartenzahlung: ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)\n`;
-        text += `🧾 Rechnungsfahrt: ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)\n`;
-        text += `🏥 Krankenfahrt: ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)\n`;
-        text += `================================\n`;
-        text += `📋 Anzahl Fahrten insgesamt: ${fahrten.length}\n`;
-        
-        return text;
+        return `📊 Fahrtenbuch Abrechnung - ${datum}\n================================\n\n💰 Gesamteinnahme: ${gesamtSumme.toFixed(2)} €\n💶 Trinkgeld gesamt: ${gesamtTrinkgeld.toFixed(2)} €\n🧾 Eigenanteil gesamt: ${gesamtEigenanteil.toFixed(2)} €\n\n🚕 Bar: ${totals.bar.anzahl} Fahrten, ${totals.bar.summe.toFixed(2)} € (Trinkgeld: ${totals.bar.trinkgeld.toFixed(2)} €)\n💳 Kartenzahlung: ${totals.karte.anzahl} Fahrten, ${totals.karte.summe.toFixed(2)} € (Trinkgeld: ${totals.karte.trinkgeld.toFixed(2)} €)\n🧾 Rechnungsfahrt: ${totals.rechnung.anzahl} Fahrten, ${totals.rechnung.summe.toFixed(2)} € (Trinkgeld: ${totals.rechnung.trinkgeld.toFixed(2)} €)\n🏥 Krankenfahrt: ${totals.kranken.anzahl} Fahrten, ${totals.kranken.summe.toFixed(2)} € (Trinkgeld: ${totals.kranken.trinkgeld.toFixed(2)} €)\n================================\n📋 Anzahl Fahrten insgesamt: ${fahrten.length}\n`;
     }
     
     function sendEmail() {
-        if (fahrten.length === 0) {
-            alert('Keine Fahrten zum Versenden.');
-            return false;
-        }
-        
-        if (!emailRecipient) {
-            alert('Bitte zuerst eine E-Mail-Adresse unter "📧 E-Mail" speichern.');
-            return false;
-        }
-        
+        if (fahrten.length === 0) { alert('Keine Fahrten zum Versenden.'); return false; }
+        if (!emailRecipient) { alert('Bitte zuerst eine E-Mail-Adresse unter "📧 E-Mail" speichern.'); return false; }
         const betreff = encodeURIComponent(`Fahrtenbuch Abrechnung - ${new Date().toLocaleDateString('de-DE')}`);
         const body = encodeURIComponent(getSummaryText());
-        const mailtoLink = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
-        
-        window.location.href = mailtoLink;
+        window.location.href = `mailto:${emailRecipient}?subject=${betreff}&body=${body}`;
         return true;
-    }
-    
-    function showEmailModal() {
-        const modal = document.getElementById('emailModal');
-        const input = document.getElementById('emailRecipient');
-        input.value = emailRecipient;
-        modal.style.display = 'flex';
-    }
-    
-    function saveEmailSettings() {
-        const input = document.getElementById('emailRecipient');
-        emailRecipient = input.value.trim();
-        localStorage.setItem('fahrtenbuch_email', emailRecipient);
-        document.getElementById('emailModal').style.display = 'none';
-        
-        if (emailRecipient) {
-            const statusBar = document.getElementById('statusBar');
-            const originalText = statusBar.innerHTML;
-            statusBar.innerHTML = `📧 E-Mail gespeichert: ${emailRecipient}`;
-            statusBar.style.background = '#d4edda';
-            setTimeout(() => {
-                statusBar.innerHTML = originalText;
-                statusBar.style.background = '#e8f0fe';
-            }, 3000);
-        }
     }
     
     const fahrtartSelect = document.getElementById('fahrtart');
     const kostentraegerField = document.getElementById('kostentraeger');
     const kostentraegerHint = document.getElementById('kostentraegerHint');
-    
     fahrtartSelect.addEventListener('change', function() {
         if (this.value === 'karte') {
             kostentraegerField.value = 'EC / CC';
@@ -862,9 +712,7 @@
             kostentraegerField.style.background = '#f0f0f0';
             kostentraegerHint.innerHTML = '💡 Kostenträger ist automatisch "EC / CC"';
         } else {
-            if (kostentraegerField.value === 'EC / CC') {
-                kostentraegerField.value = '';
-            }
+            if (kostentraegerField.value === 'EC / CC') kostentraegerField.value = '';
             kostentraegerField.readOnly = false;
             kostentraegerField.style.background = 'white';
             kostentraegerHint.innerHTML = '';
@@ -877,38 +725,21 @@
             container.innerHTML = '<div class="empty-state">🚗 Noch keine Fahrten erfasst</div>';
             return;
         }
-        
         container.innerHTML = '';
         fahrten.forEach((f, index) => {
-            let artName = '';
-            if (f.art === 'bar') artName = 'Bar';
-            else if (f.art === 'karte') artName = 'Kartenzahlung';
-            else if (f.art === 'rechnung') artName = 'Rechnungsfahrt';
-            else artName = 'Krankenfahrt';
-            
+            let artName = f.art === 'bar' ? 'Bar' : f.art === 'karte' ? 'Kartenzahlung' : f.art === 'rechnung' ? 'Rechnungsfahrt' : 'Krankenfahrt';
             const div = document.createElement('div');
             div.className = `fahrt ${f.art}`;
-            div.innerHTML = `
-                <div class="fahrt-header">${escapeHtml(f.von)} → ${escapeHtml(f.nach)}</div>
-                <div class="fahrt-details">
-                    👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>
-                    💶 ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €<br>
-                    🏷️ ${artName}
-                </div>
-                <button class="delete-btn" onclick="deleteFahrt(${index})">❌ Löschen</button>
-            `;
+            div.innerHTML = `<div class="fahrt-header">${escapeHtml(f.von)} → ${escapeHtml(f.nach)}</div>
+                <div class="fahrt-details">👤 ${escapeHtml(f.fahrgast || '-')} | 🏢 ${escapeHtml(f.kostentraeger || '-')}<br>💶 ${f.preis} € | Eigenanteil: ${f.eigenanteil} € | Trinkgeld: ${f.trinkgeld} €<br>🏷️ ${artName}</div>
+                <button class="delete-btn" onclick="deleteFahrt(${index})">❌ Löschen</button>`;
             container.appendChild(div);
         });
     }
     
     function escapeHtml(str) {
         if (!str) return '';
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
+        return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
     }
 
     function deleteFahrt(index) {
@@ -929,13 +760,11 @@
 
         von = von.replace(/\n/g, ', ');
         nach = nach.replace(/\n/g, ', ');
-        
         if (isNaN(eigenanteil)) eigenanteil = 0;
         if (isNaN(trinkgeld)) trinkgeld = 0;
         
         let fehler = '';
         const errorDiv = document.getElementById('formError');
-        
         if (art === 'bar') {
             if (!von) fehler += 'Von ist Pflicht. ';
             if (!nach) fehler += 'Nach ist Pflicht. ';
@@ -952,5 +781,74 @@
             if (!kostentraeger) fehler += 'Kostenträger ist Pflicht. ';
             if (isNaN(preis) || !document.getElementById('preis').value.trim()) fehler += 'Preis ist Pflicht. ';
         }
+        if (fehler) {
+            errorDiv.style.display = 'block';
+            errorDiv.innerHTML = '❌ ' + fehler;
+            return;
+        }
+        errorDiv.style.display = 'none';
         
-        if (fehler
+        fahrten.push({ von, nach, fahrgast, kostentraeger, preis: isNaN(preis) ? 0 : preis, eigenanteil, trinkgeld, art });
+        
+        document.getElementById('von').value = '';
+        document.getElementById('nach').value = '';
+        document.getElementById('fahrgast').value = '';
+        document.getElementById('kostentraeger').value = '';
+        document.getElementById('preis').value = '';
+        document.getElementById('eigenanteil').value = '';
+        document.getElementById('trinkgeld').value = '';
+        document.getElementById('fahrtart').value = 'bar';
+        kostentraegerField.readOnly = false;
+        kostentraegerField.style.background = 'white';
+        kostentraegerHint.innerHTML = '';
+        
+        saveAndUpdate();
+        document.getElementById('summary').style.display = 'none';
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => scrollArea.scrollTop = scrollArea.scrollHeight, 50);
+    }
+
+    function showSummary() {
+        if (fahrten.length === 0) { alert('Keine Fahrten zum Auswerten.'); return; }
+        const summaryDiv = document.getElementById('summary');
+        summaryDiv.innerHTML = `<h3>📊 Schichtabrechnung</h3><pre>${getSummaryText()}</pre>
+            <div style="display: flex; gap: 10px; margin-top: 12px;"><button id="sendEmailFromSummary" style="background: #f39c12;">📧 Per E-Mail senden</button>
+            <button id="closeSummary" style="background: #95a5a6;">Schließen</button></div>`;
+        summaryDiv.style.display = 'block';
+        document.getElementById('sendEmailFromSummary')?.addEventListener('click', () => sendEmail());
+        document.getElementById('closeSummary')?.addEventListener('click', () => summaryDiv.style.display = 'none');
+        const scrollArea = document.getElementById('scrollArea');
+        setTimeout(() => summaryDiv.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+    }
+    
+    function resetAll() {
+        if (confirm('Alle Fahrten wirklich löschen?')) {
+            fahrten = [];
+            saveAndUpdate();
+            document.getElementById('summary').style.display = 'none';
+            document.getElementById('formError').style.display = 'none';
+        }
+    }
+
+    document.getElementById('addBtn').addEventListener('click', addFahrt);
+    document.getElementById('summaryBtn').addEventListener('click', showSummary);
+    document.getElementById('resetBtn').addEventListener('click', resetAll);
+    document.getElementById('refreshBtn').addEventListener('click', refreshAdressen);
+    document.getElementById('emailSettingsBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').style.display = 'flex';
+        document.getElementById('emailRecipient').value = emailRecipient;
+    });
+    document.getElementById('saveEmailBtn').addEventListener('click', () => {
+        emailRecipient = document.getElementById('emailRecipient').value.trim();
+        localStorage.setItem('fahrtenbuch_email', emailRecipient);
+        document.getElementById('emailModal').style.display = 'none';
+    });
+    document.getElementById('closeEmailBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').style.display = 'none';
+    });
+    
+    init();
+</script>
+
+</body>
+</html>
